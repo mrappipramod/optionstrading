@@ -1,7 +1,4 @@
-flask>=3.0.0
-flask-socketio>=5.3.6
+streamlit>=1.35.0
 requests>=2.31.0
-websocket-client>=1.7.0
-python-dotenv>=1.0.0
-gevent>=23.9.1
-gevent-websocket>=0.10.1
+plotly>=5.22.0
+pandas>=2.2.0
