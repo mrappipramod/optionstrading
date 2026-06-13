@@ -146,16 +146,44 @@ def dhan_get(path, timeout=10):
         return {"error": str(e)}
 
 def verify_credentials(client_id, access_token):
-    """Quick API call to verify credentials work."""
+    """
+    Verify Dhan credentials. Returns (ok: bool, debug_msg: str).
+    Accepts 200/204/429 as valid; rejects 401/403/5xx.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "access-token": access_token.strip(),
+        "client-id":    client_id.strip(),
+    }
     try:
-        r = requests.get(
-            f"{DHAN_BASE}/funds/balance",
-            headers={"access-token": access_token, "client-id": client_id, "Content-Type": "application/json"},
-            timeout=8,
-        )
-        return r.status_code in (200, 204)
-    except Exception:
-        return False
+        r = requests.get(f"{DHAN_BASE}/funds/balance", headers=headers, timeout=10)
+        code = r.status_code
+        try:
+            body = r.json()
+        except Exception:
+            body = r.text[:300]
+
+        if code == 200:
+            return True, "Connected"
+        elif code in (401, 403):
+            msg = ""
+            if isinstance(body, dict):
+                msg = body.get("errorMessage") or body.get("message") or body.get("error") or str(body)
+            else:
+                msg = str(body)
+            return False, f"HTTP {code}: {msg or 'Invalid credentials'}"
+        elif code == 429:
+            return True, "Rate limited but credentials accepted"
+        elif code >= 500:
+            return False, f"Dhan server error (HTTP {code}). Try again in a moment."
+        else:
+            return True, f"Connected (HTTP {code})"
+    except requests.exceptions.Timeout:
+        return False, "Request timed out — check your internet connection."
+    except requests.exceptions.ConnectionError:
+        return False, "Could not reach Dhan API — check your internet connection."
+    except Exception as e:
+        return False, f"Unexpected error: {str(e)}"
 
 def fetch_candles(symbol, interval="15"):
     info = SECURITY_IDS.get(symbol)
@@ -416,20 +444,52 @@ def show_login():
             if not client_id.strip() or not access_token.strip():
                 st.error("Both Client ID and Access Token are required.")
             else:
+                # Stash creds in session so bypass button can read them
+                st.session_state["_login_cid"] = client_id.strip()
+                st.session_state["_login_tok"] = access_token.strip()
                 with st.spinner("Verifying credentials with Dhan API..."):
-                    ok = verify_credentials(client_id.strip(), access_token.strip())
+                    ok, debug_msg = verify_credentials(client_id.strip(), access_token.strip())
                 if ok:
                     st.session_state.authenticated = True
                     st.session_state.client_id     = client_id.strip()
                     st.session_state.access_token  = access_token.strip()
-                    st.success("✅ Connected! Loading dashboard...")
+                    st.success(f"✅ Connected! {debug_msg}. Loading dashboard...")
                     time.sleep(0.8)
                     st.rerun()
                 else:
-                    st.error("❌ Authentication failed. Check your Client ID and Access Token.")
+                    st.error(f"❌ Authentication failed — {debug_msg}")
+                    with st.expander("🔍 Troubleshooting tips"):
+                        st.markdown("""
+**Common reasons for failure:**
+
+1. **Wrong Client ID format** — Use only the numeric ID (e.g. `1000123456`), no spaces or dashes
+2. **Expired Access Token** — Dhan tokens expire every 24 hours. Generate a fresh one at [api.dhan.co](https://api.dhan.co)
+3. **Token not activated** — After generating, wait 1–2 minutes before first use
+4. **Extra spaces** — Make sure you didn't accidentally copy a leading/trailing space
+5. **Data API not subscribed** — Some endpoints need the ₹499/month Data API subscription
+
+**To get a fresh Access Token:**
+- Go to [api.dhan.co](https://api.dhan.co) → My Apps → Select your app → Generate Token
+- Copy the full token (it starts with `eyJ...`)
+                        """)
+
+        # ── Bypass button (for users whose verification call fails but token works) ──
+        st.markdown("<div style='text-align:center;margin-top:10px;font-size:.75rem;color:#4a6fa5;'>Verification failing but you know your credentials are correct?</div>", unsafe_allow_html=True)
+        bypass_col1, bypass_col2, bypass_col3 = st.columns([1, 2, 1])
+        with bypass_col2:
+            if st.button("⚡ Connect anyway (skip check)", use_container_width=True, help="Use this if the API check fails but your credentials are valid — e.g. outside market hours or rate limits."):
+                cid = st.session_state.get("_login_cid", "")
+                tok = st.session_state.get("_login_tok", "")
+                if cid and tok:
+                    st.session_state.authenticated = True
+                    st.session_state.client_id     = cid
+                    st.session_state.access_token  = tok
+                    st.rerun()
+                else:
+                    st.warning("Enter and submit your credentials first, then click this if you get an error.")
 
         st.markdown("""
-        <div style='text-align:center;margin-top:1.5rem;font-size:.78rem;color:#4a6fa5;'>
+        <div style='text-align:center;margin-top:1rem;font-size:.78rem;color:#4a6fa5;'>
         🔒 Your credentials are stored only in your browser session<br>
         and are never saved to disk or sent to any third party.<br><br>
         Get credentials → <a href='https://api.dhan.co' target='_blank' style='color:#00d4aa'>api.dhan.co</a>
