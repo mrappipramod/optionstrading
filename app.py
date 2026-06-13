@@ -16,6 +16,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(__file__))
 from ta_engine import analyse
+from strategy_engine import run_all_strategies, consensus, ALL_STRATEGIES
 
 # ─── PAGE CONFIG ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -95,6 +96,8 @@ defaults = {
     "alerts": [],
     "analysis_cache": {},
     "last_fetch": {},
+    "active_trades": {},
+    "strategy_config": {},
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -636,8 +639,16 @@ def show_dashboard():
     else:
         result = st.session_state.analysis_cache.get(cache_key)
 
+    # ── TABS ─────────────────────────────────────────────────────────────────
+    tab_chart, tab_strategy, tab_settings = st.tabs([
+        "📈 Chart & Analysis",
+        "🎯 Strategy Signals",
+        "⚙️ Strategy Config",
+    ])
+
     # ── LAYOUT: CHART | RIGHT PANEL ──────────────────────────────────────────
-    chart_col, right_col = st.columns([3, 1], gap="small")
+    with tab_chart:
+     chart_col, right_col = st.columns([3, 1], gap="small")
 
     with chart_col:
         if result:
@@ -892,6 +903,368 @@ def show_dashboard():
             <div style='font-size:.68rem;color:#4a6fa5;text-align:center;margin-top:8px;'>
             🔄 Auto-refresh every 2 min during market hours
             </div>""", unsafe_allow_html=True)
+
+    # ═══ TAB 2: STRATEGY SIGNALS ═══════════════════════════════════════════
+    with tab_strategy:
+        show_strategy_tab(result, sym, tf_label)
+
+    # ═══ TAB 3: STRATEGY CONFIG ═════════════════════════════════════════════
+    with tab_settings:
+        show_strategy_config_tab()
+
+
+# ─── STRATEGY SIGNALS TAB ────────────────────────────────────────────────────
+def show_strategy_tab(result, sym, tf_label):
+    if not result:
+        st.info("Load chart data first (Chart & Analysis tab).")
+        return
+
+    config      = st.session_state.get("strategy_config", {})
+    active_trades = st.session_state.get("active_trades", {})
+
+    # Run all strategies
+    setups = run_all_strategies(result, config, active_trades)
+    con    = consensus(setups)
+
+    # ── CONSENSUS BANNER ──────────────────────────────────────────────────
+    con_dir = con["consensus"]
+    con_col = ("#00d4aa" if "BUY" in con_dir else
+               "#f87171" if "SELL" in con_dir else
+               "#f59e0b" if con_dir in ("STOP_LOSS","EXIT") else "#4a6fa5")
+    con_bg  = con_col + "18"
+    con_emoji = ("🟢" if "BUY" in con_dir else "🔴" if "SELL" in con_dir else
+                 "⚠️" if con_dir in ("STOP_LOSS","EXIT") else "⏸️")
+
+    st.markdown(f"""
+    <div style='background:{con_bg};border:1.5px solid {con_col}55;border-radius:12px;
+         padding:16px 20px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;'>
+      <div>
+        <div style='font-size:.72rem;color:#4a6fa5;margin-bottom:2px;'>STRATEGY CONSENSUS — {sym} ({tf_label})</div>
+        <div style='font-size:1.7rem;font-weight:800;color:{con_col};letter-spacing:1px;'>{con_emoji} {con_dir}</div>
+      </div>
+      <div style='text-align:right;font-size:.78rem;'>
+        <span style='color:#00d4aa;'>▲ Bull: {con["bull_count"]}</span> &nbsp;
+        <span style='color:#f87171;'>▼ Bear: {con["bear_count"]}</span> &nbsp;
+        <span style='color:#f59e0b;'>⏸ Hold: {con["hold_count"]}</span> &nbsp;
+        <span style='color:#4a6fa5;'>⏳ Wait: {con["wait_count"]}</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── STRATEGY CARDS ────────────────────────────────────────────────────
+    for strat_name, setup in setups.items():
+        action = setup.action
+        col_map = {
+            "ENTER_LONG":  ("#00d4aa", "🟢 ENTER LONG  —  BUY CE"),
+            "ENTER_SHORT": ("#f87171", "🔴 ENTER SHORT  —  BUY PE"),
+            "HOLD":        ("#f59e0b", "⏸️ HOLD"),
+            "EXIT_LONG":   ("#60a5fa", "🔵 EXIT LONG"),
+            "EXIT_SHORT":  ("#60a5fa", "🔵 EXIT SHORT"),
+            "STOP_LOSS":   ("#ef4444", "🚨 STOP LOSS HIT"),
+            "WAIT":        ("#4a6fa5", "⏳ WAIT / NO SIGNAL"),
+        }
+        col, label = col_map.get(action, ("#4a6fa5", action))
+        conf_badge = {
+            "HIGH":   "🔥 HIGH confidence",
+            "MEDIUM": "⚡ MEDIUM confidence",
+            "LOW":    "🌀 LOW confidence",
+        }.get(setup.confidence, "")
+
+        with st.expander(f"{label}   ·   **{strat_name}**   {conf_badge}", expanded=(action not in ("WAIT",))):
+            strategy_obj = ALL_STRATEGIES.get(strat_name)
+            if strategy_obj:
+                st.caption(strategy_obj.description)
+
+            # Main action display
+            if action in ("ENTER_LONG", "ENTER_SHORT"):
+                direction = "LONG" if action == "ENTER_LONG" else "SHORT"
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Entry",    f"₹{setup.entry_price:,.2f}")
+                c2.metric("Stop Loss",f"₹{setup.stop_loss:,.2f}",
+                          delta=f"-{setup.sl_pct:.1f}%",
+                          delta_color="inverse")
+                c3.metric("Target 1", f"₹{setup.target_1:,.2f}")
+                c4.metric("Target 2", f"₹{setup.target_2:,.2f}")
+
+                c5, c6, c7, c8 = st.columns(4)
+                c5.metric("Target 3", f"₹{setup.target_3:,.2f}")
+                c6.metric("R:R Ratio", f"1 : {setup.rr_ratio:.1f}")
+                c7.metric("Risk/Lot",  f"₹{setup.risk_per_lot:,.0f}")
+                c8.metric("Option",    f"{setup.option_type} @ {setup.suggested_strike:.0f}")
+
+                # Risk bar
+                pct_sl  = setup.sl_pct
+                pct_t1  = round(abs(setup.target_1 - setup.entry_price) / setup.entry_price * 100, 2) if setup.entry_price else 0
+                pct_t2  = round(abs(setup.target_2 - setup.entry_price) / setup.entry_price * 100, 2) if setup.entry_price else 0
+                st.markdown(f"""
+                <div style='margin:10px 0 4px;font-size:.75rem;color:#4a6fa5;'>Risk vs Reward</div>
+                <div style='display:flex;gap:4px;height:10px;border-radius:5px;overflow:hidden;'>
+                  <div style='width:{pct_sl * 10}%;background:#f87171;border-radius:5px 0 0 5px;' title='SL {pct_sl}%'></div>
+                  <div style='width:{pct_t1 * 8}%;background:#f59e0b;' title='T1 +{pct_t1}%'></div>
+                  <div style='width:{pct_t2 * 6}%;background:#00d4aa;border-radius:0 5px 5px 0;' title='T2 +{pct_t2}%'></div>
+                </div>
+                <div style='display:flex;justify-content:space-between;font-size:.68rem;color:#4a6fa5;margin-top:2px;'>
+                  <span>SL -{pct_sl:.1f}%</span><span>T1 +{pct_t1:.1f}%</span><span>T2 +{pct_t2:.1f}%</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Reasons
+                if setup.reasons:
+                    st.markdown("**Entry reasons:**")
+                    for r in setup.reasons:
+                        st.markdown(f"✅ {r}")
+                if setup.warnings:
+                    for w in setup.warnings:
+                        st.warning(f"⚠️ {w}")
+
+                # Trade activation button
+                st.markdown("---")
+                btn_col1, btn_col2 = st.columns([1,2])
+                with btn_col1:
+                    if st.button(f"✅ Mark as Active Trade", key=f"activate_{strat_name}"):
+                        st.session_state.active_trades[strat_name] = {
+                            "strategy":    strat_name,
+                            "direction":   direction,
+                            "entry_price": setup.entry_price,
+                            "stop_loss":   setup.stop_loss,
+                            "trailing_sl": setup.stop_loss,
+                            "target_1":    setup.target_1,
+                            "target_2":    setup.target_2,
+                            "target_3":    setup.target_3,
+                            "option_type": setup.option_type,
+                            "entry_time":  datetime.now().strftime("%H:%M IST"),
+                        }
+                        add_alert(action.split("_")[0],
+                                  f"{strat_name}: {direction} @ {setup.entry_price:.0f} SL {setup.stop_loss:.0f} T2 {setup.target_2:.0f}")
+                        st.success(f"Trade activated! Monitoring for exit/SL signals.")
+                        st.rerun()
+
+            elif action == "HOLD":
+                if setup.in_trade:
+                    pnl = setup.current_pnl_pct
+                    pnl_col = "#00d4aa" if pnl >= 0 else "#f87171"
+                    mile = setup.milestone_hit
+
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Entry",     f"₹{active_trades.get(strat_name, {}).get('entry_price', 0):,.0f}")
+                    c2.metric("Curr P&L",  f"{pnl:+.2f}%",
+                              delta=f"{'🎯 ' + mile.replace('_',' ') if mile else ''}",
+                              delta_color="normal" if pnl >= 0 else "inverse")
+                    c3.metric("Stop Loss", f"₹{setup.stop_loss:,.0f}")
+                    c4.metric("Trail SL",  f"₹{setup.trailing_sl:,.0f}" if setup.trailing_sl else "—")
+
+                    t_col1, t_col2, t_col3 = st.columns(3)
+                    t_col1.metric("T1", f"₹{setup.target_1:,.0f}")
+                    t_col2.metric("T2", f"₹{setup.target_2:,.0f}")
+                    t_col3.metric("T3", f"₹{setup.target_3:,.0f}")
+
+                    if mile:
+                        mile_col = "#00d4aa" if "T3" in mile else "#f59e0b" if "T2" in mile else "#60a5fa"
+                        st.markdown(f"""
+                        <div style='background:{mile_col}22;border:1px solid {mile_col}55;border-radius:7px;
+                             padding:8px 14px;margin:8px 0;font-size:.82rem;color:{mile_col};font-weight:700;'>
+                          🎯 {mile.replace("_", " ")} — {'Consider partial exit / move SL to entry' if mile == 'T1_HIT' else 'Activate trailing SL' if mile == 'T2_HIT' else 'Full exit recommended'}
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                for r in (setup.hold_reasons or []):
+                    st.markdown(f"⏸ {r}")
+
+                if setup.in_trade:
+                    if st.button(f"🚪 Close Trade (Manual Exit)", key=f"close_{strat_name}"):
+                        at = st.session_state.active_trades.pop(strat_name, {})
+                        add_alert("INFO", f"{strat_name}: Manual exit @ entry {at.get('entry_price',0):.0f}")
+                        st.success("Trade closed.")
+                        st.rerun()
+
+            elif action in ("EXIT_LONG", "EXIT_SHORT"):
+                direction = "LONG" if action == "EXIT_LONG" else "SHORT"
+                pnl = setup.current_pnl_pct
+                pnl_col = "#00d4aa" if pnl >= 0 else "#f87171"
+
+                st.markdown(f"""
+                <div style='background:#60a5fa18;border:1px solid #60a5fa55;border-radius:8px;
+                     padding:12px;margin-bottom:8px;'>
+                  <span style='font-size:1.1rem;font-weight:700;color:#60a5fa;'>EXIT {direction}</span>
+                  <span style='font-size:.9rem;color:{pnl_col};margin-left:12px;'>P&L: {pnl:+.2f}%</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("**Exit reasons:**")
+                for r in (setup.exit_reasons or []):
+                    st.markdown(f"🔵 {r}")
+
+                if st.button(f"✅ Confirm Exit", key=f"exit_{strat_name}"):
+                    at = st.session_state.active_trades.pop(strat_name, {})
+                    add_alert("INFO", f"{strat_name}: EXIT {direction} — P&L {pnl:+.2f}%")
+                    st.success(f"Trade exited. P&L: {pnl:+.2f}%")
+                    st.rerun()
+
+            elif action == "STOP_LOSS":
+                pnl = setup.current_pnl_pct
+                st.markdown(f"""
+                <div style='background:#ef444422;border:2px solid #ef4444;border-radius:8px;
+                     padding:14px;margin-bottom:8px;'>
+                  <div style='font-size:1.3rem;font-weight:800;color:#ef4444;'>🚨 STOP LOSS HIT</div>
+                  <div style='font-size:.85rem;color:#f87171;margin-top:4px;'>Loss: {pnl:+.2f}% — Exit immediately to limit further damage</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                for r in (setup.sl_reasons or []):
+                    st.error(r)
+
+                if st.button(f"🚨 Confirm SL Exit", key=f"sl_{strat_name}",
+                             type="primary"):
+                    at = st.session_state.active_trades.pop(strat_name, {})
+                    add_alert("SELL", f"{strat_name}: STOP LOSS — Loss {pnl:+.2f}%")
+                    st.error(f"SL exit confirmed. Loss: {pnl:+.2f}%")
+                    st.rerun()
+
+            else:  # WAIT
+                for r in (setup.hold_reasons or ["No setup forming — stand aside"]):
+                    st.caption(f"⏳ {r}")
+
+    # ── ACTIVE TRADES SUMMARY ─────────────────────────────────────────────
+    if active_trades:
+        st.divider()
+        st.markdown("### 🗂️ Active Trades")
+        for strat, trade in list(active_trades.items()):
+            close = result.get("candles", [{}])[-1].get("c", 0) if result else 0
+            entry = trade.get("entry_price", close)
+            direction = trade.get("direction", "LONG")
+            pnl = ((close - entry) / entry * 100) if direction == "LONG" and entry else ((entry - close) / entry * 100) if entry else 0
+            pnl_col = "#00d4aa" if pnl >= 0 else "#f87171"
+            st.markdown(f"""
+            <div style='background:#0d1525;border:0.5px solid #1e3050;border-radius:8px;
+                 padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;'>
+              <div>
+                <span style='font-weight:700;color:#e2e8f0;'>{strat}</span>
+                <span style='color:#4a6fa5;font-size:.75rem;margin-left:8px;'>{direction} · Entry {entry:.0f} · SL {trade.get("stop_loss",0):.0f}</span>
+              </div>
+              <div style='font-weight:700;font-size:1rem;color:{pnl_col};'>{pnl:+.2f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+# ─── STRATEGY CONFIG TAB ─────────────────────────────────────────────────────
+def show_strategy_config_tab():
+    st.markdown("### ⚙️ Strategy Configuration")
+    st.caption("Customise parameters for each strategy. Changes apply immediately on next signal check.")
+
+    config = st.session_state.get("strategy_config", {})
+
+    with st.expander("🔧 Global Risk Settings", expanded=True):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            sl_atr = st.slider("SL ATR Multiplier", 0.5, 3.0,
+                                float(config.get("sl_atr_mult", 1.5)), 0.1,
+                                help="Stop Loss = entry ± (ATR × this value). Higher = wider SL, fewer stops.")
+        with c2:
+            t2_rr = st.slider("Target 2 RR", 1.5, 5.0,
+                               float(config.get("t2_rr", 2.5)), 0.5,
+                               help="Risk:Reward for Target 2. 2.5 means gain = 2.5× your risk.")
+        with c3:
+            t3_rr = st.slider("Target 3 RR", 2.0, 8.0,
+                               float(config.get("t3_rr", 4.0)), 0.5,
+                               help="Risk:Reward for Target 3 (runner / trail).")
+        config["sl_atr_mult"] = sl_atr
+        config["t2_rr"]       = t2_rr
+        config["t3_rr"]       = t3_rr
+        config["t1_rr"]       = round(t2_rr * 0.6, 1)
+
+    with st.expander("📊 EMA Trend Follow Settings"):
+        c1, c2 = st.columns(2)
+        with c1:
+            min_score = st.slider("Min Signal Score to Enter", 20, 70,
+                                   int(config.get("min_score", 30)), 5,
+                                   help="Higher = stricter entry filter, fewer but better signals.")
+        with c2:
+            st.markdown(f"""
+            <div style='background:#0d1525;border-radius:6px;padding:10px;margin-top:4px;font-size:.8rem;'>
+            <b style='color:#00d4aa;'>Entry rule:</b><br>
+            EMA9 × EMA21 cross OR score ≥ {min_score}<br>
+            + MACD histogram positive<br>
+            + Price above VWAP
+            </div>""", unsafe_allow_html=True)
+        config["min_score"] = min_score
+
+    with st.expander("📉 RSI Mean Reversion Settings"):
+        c1, c2 = st.columns(2)
+        with c1:
+            rsi_os = st.slider("RSI Oversold threshold", 20, 40,
+                                int(config.get("rsi_os", 30)), 1,
+                                help="Buy signal fires when RSI drops below this.")
+        with c2:
+            rsi_ob = st.slider("RSI Overbought threshold", 60, 80,
+                                int(config.get("rsi_ob", 70)), 1,
+                                help="Sell signal fires when RSI rises above this.")
+        config["rsi_os"] = rsi_os
+        config["rsi_ob"] = rsi_ob
+
+    with st.expander("🎯 Multi-Confluence Settings"):
+        min_conf = st.slider("Minimum Confluences Required", 2, 6,
+                              int(config.get("min_confluences", 4)), 1,
+                              help="How many independent signals must agree before entering. Higher = rarer but higher quality trades.")
+        config["min_confluences"] = min_conf
+        st.caption(f"Currently requires **{min_conf} out of 6** signals to align: EMA Stack, MACD, RSI, VWAP, BB, Candle Pattern")
+
+    # Save button
+    if st.button("💾 Save Configuration", type="primary", use_container_width=True):
+        st.session_state.strategy_config = config
+        st.success("✅ Configuration saved! Will apply on next signal refresh.")
+
+    st.divider()
+
+    # Strategy cheatsheet
+    st.markdown("### 📚 Strategy Guide")
+    guide = {
+        "EMA Trend Follow": {
+            "best_for": "Trending markets (strong up or down move)",
+            "avoid":    "Sideways / range-bound days",
+            "signal":   "EMA9 × EMA21 cross + MACD + VWAP",
+            "sl_style": "ATR-based below swing low",
+        },
+        "RSI Mean Reversion": {
+            "best_for": "Range-bound, consolidating markets",
+            "avoid":    "Strong trending days (RSI stays extreme)",
+            "signal":   "RSI oversold/overbought + BB band touch + reversal candle",
+            "sl_style": "Below/above the candle low/high that triggered",
+        },
+        "MACD Momentum": {
+            "best_for": "Breakout days, high volatility",
+            "avoid":    "Low volume, choppy markets",
+            "signal":   "MACD line × signal line cross + histogram expansion",
+            "sl_style": "Wide ATR SL — momentum trades need room",
+        },
+        "VWAP Reversal": {
+            "best_for": "Intraday scalps around VWAP level",
+            "avoid":    "Pre-market / first 15 min (VWAP unreliable)",
+            "signal":   "Price reclaims or rejects VWAP + volume + candle",
+            "sl_style": "Tight — just beyond VWAP level",
+        },
+        "Multi-Confluence": {
+            "best_for": "Any market — highest accuracy, fewest signals",
+            "avoid":    "When impatient — may wait all day for a setup",
+            "signal":   "4+ of: EMA, RSI, MACD, VWAP, BB, Pattern all agree",
+            "sl_style": "ATR × 1.8 — widest, for highest conviction trades",
+        },
+    }
+    for name, g in guide.items():
+        with st.expander(f"📖 {name}"):
+            gc1, gc2 = st.columns(2)
+            with gc1:
+                st.markdown(f"✅ **Best for:** {g['best_for']}")
+                st.markdown(f"❌ **Avoid when:** {g['avoid']}")
+            with gc2:
+                st.markdown(f"⚡ **Signal:** {g['signal']}")
+                st.markdown(f"🛑 **Stop Loss:** {g['sl_style']}")
+
+    st.divider()
+    st.markdown("### 🗑️ Clear Active Trades")
+    if st.button("Clear All Active Trades", type="secondary"):
+        st.session_state.active_trades = {}
+        st.success("All active trades cleared.")
+        st.rerun()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
