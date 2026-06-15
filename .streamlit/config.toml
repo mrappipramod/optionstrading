@@ -1,7 +1,7 @@
 [theme]
-base = "dark"
-primaryColor = "#10b981"          # Vibrant Emerald Green
-backgroundColor = "#f4f4f5"       # Neutral, clean background (Zinc 100)
-secondaryBackgroundColor = "#ffffff" # Pure white
-textColor = "#18181b"             # Crisp near-black (Zinc 900)
+base = "light"
+primaryColor = "#0ea5e9"
+backgroundColor = "#f1f5f9"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#1e293b"
 font = "sans serif"
