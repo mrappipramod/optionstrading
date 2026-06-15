@@ -1210,223 +1210,364 @@ def show_option_chain_tab(sym, ltp):
 
 # ─── POSITIONS / HOLDINGS TAB ─────────────────────────────────────────────────
 def show_portfolio_tab():
-    st.markdown("### 🗂️ Portfolio")
-    t1, t2, t3, t4 = st.tabs(["📋 Positions","📦 Holdings","📜 Orders","📊 Trade Journal"])
+    # ── Account Summary Bar (always visible, auto-loaded) ────────────────────
+    if "portfolio_funds" not in st.session_state:
+        st.session_state.portfolio_funds = None
+    if "portfolio_pos"   not in st.session_state:
+        st.session_state.portfolio_pos   = None
+    if "portfolio_hld"   not in st.session_state:
+        st.session_state.portfolio_hld   = None
+    if "portfolio_orders" not in st.session_state:
+        st.session_state.portfolio_orders = None
 
+    # Header with refresh
+    h1, h2 = st.columns([4, 1])
+    with h1:
+        st.markdown("### 🗂️ Portfolio")
+    with h2:
+        if st.button("🔄 Refresh All", use_container_width=True, type="primary", key="ref_all"):
+            with st.spinner("Loading..."):
+                st.session_state.portfolio_funds  = fetch_funds()
+                st.session_state.portfolio_pos    = fetch_positions()
+                st.session_state.portfolio_hld    = fetch_holdings()
+                st.session_state.portfolio_orders = fetch_orders()
+
+    # ── Funds summary (top of page, always prominent) ─────────────────────────
+    funds = st.session_state.portfolio_funds
+    pos   = st.session_state.portfolio_pos
+    hld   = st.session_state.portfolio_hld
+
+    if funds and not funds.get("error"):
+        avail = float(funds.get("availabelBalance") or funds.get("availableBalance") or
+                      (funds.get("data") or {}).get("availabelBalance") or 0)
+        used  = float(funds.get("utilizedAmount") or 0)
+        total = avail + used
+
+        fc1,fc2,fc3,fc4 = st.columns(4)
+        fc1.metric("💰 Available Balance", f"₹{avail:,.2f}")
+        fc2.metric("📊 Margin Used",       f"₹{used:,.2f}")
+        fc3.metric("🏦 Total Balance",     f"₹{total:,.2f}")
+
+        # Unrealised P&L from positions
+        if isinstance(pos, list) and pos:
+            total_unreal = sum(float(p.get("unrealizedProfit",0)) for p in pos)
+            total_real   = sum(float(p.get("realizedProfit",0))   for p in pos)
+            uc = "#059669" if total_unreal >= 0 else "#dc2626"
+            rc = "#059669" if total_real   >= 0 else "#dc2626"
+            fc4.metric("📈 Day P&L (Unreal)", f"₹{total_unreal:+,.2f}")
+        else:
+            fc4.metric("📈 Day P&L", "—")
+    else:
+        st.markdown("""
+        <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+             padding:20px;text-align:center;margin-bottom:12px;'>
+          <div style='font-size:1.1rem;color:#64748b;margin-bottom:8px;'>📊 Portfolio Overview</div>
+          <div style='font-size:.85rem;color:#94a3b8;'>
+            Click <b>🔄 Refresh All</b> above to load your live positions, holdings, orders and account balance.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # ── TABS ─────────────────────────────────────────────────────────────────
+    t1, t2, t3, t4 = st.tabs(["📋 Positions", "📦 Holdings", "📜 Orders Today", "📊 Trade Journal"])
+
+    # ═══ TAB 1: POSITIONS ════════════════════════════════════════════════════
     with t1:
-        if st.button("🔄 Refresh Positions", key="ref_pos"):
-            pos = fetch_positions()
-            if isinstance(pos, list):
-                if pos:
-                    df = pd.DataFrame(pos)
-                    keep = [c for c in ["tradingSymbol","exchangeSegment","positionType",
-                                        "productType","netQty","buyAvg","sellAvg",
-                                        "unrealizedProfit","realizedProfit",
-                                        "drvStrikePrice","drvOptionType","drvExpiryDate"]
-                            if c in df.columns]
-                    df2 = df[keep].copy()
-                    df2.columns = [c.replace("drv","").replace("exchangeSegment","Seg")
-                                   .replace("tradingSymbol","Symbol")
-                                   .replace("positionType","Pos")
-                                   .replace("productType","Product") for c in keep]
-                    st.dataframe(df2, use_container_width=True, hide_index=True)
-                    total_unreal = sum(float(p.get("unrealizedProfit",0)) for p in pos)
-                    total_real   = sum(float(p.get("realizedProfit",0))   for p in pos)
-                    col1,col2 = st.columns(2)
-                    col1.metric("Unrealised P&L", f"₹{total_unreal:,.2f}",
-                                delta_color="normal" if total_unreal>=0 else "inverse")
-                    col2.metric("Realised P&L", f"₹{total_real:,.2f}",
-                                delta_color="normal" if total_real>=0 else "inverse")
-                else:
-                    st.info("No open positions today.")
-            else:
-                st.error((pos or {}).get("error","Failed to fetch positions"))
-        else:
-            st.caption("Click Refresh to load positions.")
+        pc1, pc2 = st.columns([4,1])
+        with pc2:
+            if st.button("🔄 Refresh", key="ref_pos", use_container_width=True):
+                st.session_state.portfolio_pos = fetch_positions()
 
+        pos = st.session_state.portfolio_pos
+
+        if pos is None:
+            st.markdown("""
+            <div style='background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;
+                 padding:40px 24px;text-align:center;margin-top:12px;'>
+              <div style='font-size:2rem;margin-bottom:8px;'>📋</div>
+              <div style='font-size:1rem;font-weight:600;color:#334155;margin-bottom:6px;'>No positions loaded</div>
+              <div style='font-size:.85rem;color:#94a3b8;'>Click Refresh to fetch your open positions from Dhan</div>
+            </div>""", unsafe_allow_html=True)
+
+        elif isinstance(pos, list) and pos:
+            df_pos = pd.DataFrame(pos)
+            keep = [c for c in ["tradingSymbol","exchangeSegment","positionType","productType",
+                                 "netQty","buyAvg","sellAvg","unrealizedProfit","realizedProfit",
+                                 "drvStrikePrice","drvOptionType","drvExpiryDate"] if c in df_pos.columns]
+            df2 = df_pos[keep].copy()
+            df2.columns = [c.replace("drv","").replace("exchangeSegment","Seg")
+                            .replace("tradingSymbol","Symbol").replace("positionType","Type")
+                            .replace("productType","Product").replace("unrealizedProfit","UnrealP&L")
+                            .replace("realizedProfit","RealP&L") for c in keep]
+            st.dataframe(df2, use_container_width=True, hide_index=True)
+
+            total_unreal = sum(float(p.get("unrealizedProfit",0)) for p in pos)
+            total_real   = sum(float(p.get("realizedProfit",0))   for p in pos)
+            net_day      = total_unreal + total_real
+
+            m1,m2,m3,m4 = st.columns(4)
+            m1.metric("Open Positions",  len([p for p in pos if int(p.get("netQty",0)) != 0]))
+            m2.metric("Unrealised P&L",  f"₹{total_unreal:+,.2f}",
+                      delta_color="normal" if total_unreal >= 0 else "inverse")
+            m3.metric("Realised P&L",    f"₹{total_real:+,.2f}",
+                      delta_color="normal" if total_real   >= 0 else "inverse")
+            m4.metric("Net Day P&L",     f"₹{net_day:+,.2f}",
+                      delta_color="normal" if net_day       >= 0 else "inverse")
+
+        elif isinstance(pos, dict) and pos.get("error"):
+            st.error(f"❌ {pos['error']}")
+        else:
+            st.markdown("""
+            <div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;
+                 padding:24px;text-align:center;'>
+              <div style='font-size:1.5rem;'>✅</div>
+              <div style='font-weight:600;color:#166534;margin-top:6px;'>No open positions today</div>
+              <div style='font-size:.85rem;color:#64748b;margin-top:4px;'>All positions are squared off.</div>
+            </div>""", unsafe_allow_html=True)
+
+    # ═══ TAB 2: HOLDINGS ═════════════════════════════════════════════════════
     with t2:
-        if st.button("🔄 Refresh Holdings", key="ref_hld"):
-            hld = fetch_holdings()
-            if isinstance(hld, list) and hld:
-                df = pd.DataFrame(hld)
-                keep = [c for c in ["tradingSymbol","exchange","totalQty","availableQty",
-                                    "avgCostPrice","t1Qty"] if c in df.columns]
-                st.dataframe(df[keep], use_container_width=True, hide_index=True)
-            elif "error" in (hld or {}):
-                st.error(hld["error"])
-            else:
-                st.info("No holdings found.")
-        else:
-            st.caption("Click Refresh to load holdings.")
+        hc1, hc2 = st.columns([4,1])
+        with hc2:
+            if st.button("🔄 Refresh", key="ref_hld", use_container_width=True):
+                st.session_state.portfolio_hld = fetch_holdings()
 
+        hld = st.session_state.portfolio_hld
+
+        if hld is None:
+            st.markdown("""
+            <div style='background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;
+                 padding:40px 24px;text-align:center;margin-top:12px;'>
+              <div style='font-size:2rem;margin-bottom:8px;'>📦</div>
+              <div style='font-size:1rem;font-weight:600;color:#334155;margin-bottom:6px;'>Holdings not loaded</div>
+              <div style='font-size:.85rem;color:#94a3b8;'>Click Refresh to fetch your delivery holdings</div>
+            </div>""", unsafe_allow_html=True)
+
+        elif isinstance(hld, list) and hld:
+            df_hld = pd.DataFrame(hld)
+            keep_h = [c for c in ["tradingSymbol","exchange","totalQty","availableQty",
+                                   "avgCostPrice","t1Qty","isin"] if c in df_hld.columns]
+            df_h2  = df_hld[keep_h].copy()
+            df_h2.columns = [c.replace("tradingSymbol","Symbol").replace("totalQty","Total Qty")
+                               .replace("availableQty","Avail Qty").replace("avgCostPrice","Avg Cost")
+                               .replace("t1Qty","T1 Qty") for c in keep_h]
+            st.dataframe(df_h2, use_container_width=True, hide_index=True)
+            st.caption(f"Total holdings: {len(hld)} stocks")
+
+        elif isinstance(hld, dict) and hld.get("error"):
+            st.error(f"❌ {hld['error']}")
+        else:
+            st.markdown("""
+            <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+                 padding:24px;text-align:center;'>
+              <div style='font-size:1.5rem;'>📦</div>
+              <div style='font-weight:600;color:#334155;margin-top:6px;'>No holdings found</div>
+              <div style='font-size:.85rem;color:#64748b;margin-top:4px;'>Your demat account has no delivery holdings.</div>
+            </div>""", unsafe_allow_html=True)
+
+    # ═══ TAB 3: ORDERS ═══════════════════════════════════════════════════════
     with t3:
-        if st.button("🔄 Refresh Orders", key="ref_ord"):
-            orders = fetch_orders()
-            if isinstance(orders, list) and orders:
-                df = pd.DataFrame(orders)
-                keep = [c for c in ["orderId","tradingSymbol","transactionType","orderStatus",
-                                    "orderType","quantity","price","productType","createTime"]
-                        if c in df.columns]
-                st.dataframe(df[keep], use_container_width=True, hide_index=True)
-            elif "error" in (orders or {}):
-                st.error(orders["error"])
-            else:
-                st.info("No orders today.")
-        else:
-            st.caption("Click Refresh to load today's orders.")
+        oc1, oc2 = st.columns([4,1])
+        with oc2:
+            if st.button("🔄 Refresh", key="ref_ord", use_container_width=True):
+                st.session_state.portfolio_orders = fetch_orders()
 
-    # ── TRADE JOURNAL ─────────────────────────────────────────────────────────
+        orders = st.session_state.portfolio_orders
+
+        if orders is None:
+            st.markdown("""
+            <div style='background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;
+                 padding:40px 24px;text-align:center;margin-top:12px;'>
+              <div style='font-size:2rem;margin-bottom:8px;'>📜</div>
+              <div style='font-size:1rem;font-weight:600;color:#334155;margin-bottom:6px;'>Orders not loaded</div>
+              <div style='font-size:.85rem;color:#94a3b8;'>Click Refresh to fetch today's order book</div>
+            </div>""", unsafe_allow_html=True)
+
+        elif isinstance(orders, list) and orders:
+            df_ord = pd.DataFrame(orders)
+            keep_o = [c for c in ["orderId","tradingSymbol","transactionType","orderStatus",
+                                   "orderType","quantity","price","productType","createTime"]
+                      if c in df_ord.columns]
+            df_o2 = df_ord[keep_o].copy()
+            df_o2.columns = [c.replace("tradingSymbol","Symbol").replace("transactionType","Side")
+                               .replace("orderStatus","Status").replace("orderType","Type")
+                               .replace("productType","Product").replace("createTime","Time")
+                               .replace("orderId","Order ID") for c in keep_o]
+
+            # Order status summary
+            if "Status" in df_o2.columns:
+                statuses = df_o2["Status"].value_counts()
+                sc = st.columns(min(len(statuses), 4))
+                status_colors = {"TRADED":"#059669","CANCELLED":"#dc2626","REJECTED":"#dc2626",
+                                 "PENDING":"#d97706","TRANSIT":"#0ea5e9","PART_TRADED":"#7c3aed"}
+                for i, (status, count) in enumerate(statuses.items()):
+                    if i < 4:
+                        col_c = status_colors.get(status, "#64748b")
+                        sc[i].markdown(f"""
+                        <div style='background:#ffffff;border:1px solid {col_c}44;border-radius:8px;
+                             padding:8px 12px;text-align:center;'>
+                          <div style='font-size:.65rem;color:#64748b;'>STATUS</div>
+                          <div style='font-size:.95rem;font-weight:700;color:{col_c};'>{status}</div>
+                          <div style='font-size:1.1rem;font-weight:800;color:#1e293b;'>{count}</div>
+                        </div>""", unsafe_allow_html=True)
+
+            st.dataframe(df_o2, use_container_width=True, hide_index=True)
+
+        elif isinstance(orders, dict) and orders.get("error"):
+            st.error(f"❌ {orders['error']}")
+        else:
+            st.markdown("""
+            <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+                 padding:24px;text-align:center;'>
+              <div style='font-size:1.5rem;'>📜</div>
+              <div style='font-weight:600;color:#334155;margin-top:6px;'>No orders today</div>
+              <div style='font-size:.85rem;color:#64748b;margin-top:4px;'>No orders placed in today's session.</div>
+            </div>""", unsafe_allow_html=True)
+
+    # ═══ TAB 4: TRADE JOURNAL ════════════════════════════════════════════════
     with t4:
         st.markdown("#### 📊 Trade Journal — Net P&L Calculator")
-        st.caption("Every trade closed from the Strategy tab is logged here with full charge breakdown.")
+        st.caption("Every trade closed from the Strategy tab is auto-logged here. You can also add trades manually.")
 
         trade_log = st.session_state.get("trade_log", [])
 
-        # ── Manual trade entry ────────────────────────────────────────────────
-        with st.expander("➕ Log a Trade Manually", expanded=not bool(trade_log)):
-            lc1, lc2, lc3, lc4 = st.columns(4)
-            with lc1:
-                log_sym    = st.text_input("Symbol", value="NIFTY", key="log_sym")
-                log_dir    = st.selectbox("Direction", ["LONG","SHORT"], key="log_dir")
-            with lc2:
-                log_entry  = st.number_input("Entry Price", min_value=0.01, value=100.0, step=0.05, key="log_entry")
-                log_exit   = st.number_input("Exit Price",  min_value=0.01, value=110.0, step=0.05, key="log_exit")
-            with lc3:
-                log_qty    = st.number_input("Quantity", min_value=1, value=75, key="log_qty")
-                log_type   = st.selectbox("Trade Type",
-                                          ["FNO_INTRADAY","FNO_DELIVERY","EQ_INTRADAY","EQ_DELIVERY"],
-                                          key="log_type")
-            with lc4:
-                log_brok   = st.number_input("Brokerage per order (₹)", min_value=0.0, value=20.0, key="log_brok")
-                log_note   = st.text_input("Notes", placeholder="Optional", key="log_note")
-
-            if st.button("📥 Calculate & Log Trade", use_container_width=True, type="primary", key="log_add"):
-                pnl_data = calc_pnl(log_entry, log_exit, log_qty, log_dir, log_type,
-                                    log_brok, log_brok)
-                entry_rec = {
-                    "time":        ist_now().strftime("%d %b %H:%M"),
-                    "symbol":      log_sym.upper(),
-                    "direction":   log_dir,
-                    "qty":         log_qty,
-                    "entry":       log_entry,
-                    "exit":        log_exit,
-                    "type":        log_type,
-                    "note":        log_note,
-                    **pnl_data,
-                }
-                st.session_state.trade_log.insert(0, entry_rec)
-                st.success(f"✅ Logged! Net P&L: ₹{pnl_data['net_pnl']:+,.2f}")
-                st.rerun()
-
-        # ── Summary metrics ───────────────────────────────────────────────────
+        # Summary metrics at top (always visible)
         if trade_log:
-            total_net   = sum(t["net_pnl"]       for t in trade_log)
-            total_gross = sum(t["gross_pnl"]      for t in trade_log)
-            total_charg = sum(t["total_charges"]  for t in trade_log)
+            total_net   = sum(t["net_pnl"]      for t in trade_log)
+            total_gross = sum(t["gross_pnl"]     for t in trade_log)
+            total_charg = sum(t["total_charges"] for t in trade_log)
             wins        = sum(1 for t in trade_log if t["net_pnl"] > 0)
             losses      = sum(1 for t in trade_log if t["net_pnl"] <= 0)
             win_rate    = (wins / len(trade_log) * 100) if trade_log else 0
-            avg_win     = (sum(t["net_pnl"] for t in trade_log if t["net_pnl"]>0) / wins) if wins else 0
+            avg_win     = (sum(t["net_pnl"] for t in trade_log if t["net_pnl"]>0) / wins)  if wins   else 0
             avg_loss    = (sum(t["net_pnl"] for t in trade_log if t["net_pnl"]<=0) / losses) if losses else 0
 
-            net_col = "#00d4aa" if total_net >= 0 else "#f87171"
-            st.markdown(f"""
-            <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;'>
-              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#64748b;'>Net P&L (after charges)</div>
-                <div style='font-size:1.3rem;font-weight:800;color:{net_col};'>₹{total_net:+,.2f}</div>
-              </div>
-              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#64748b;'>Gross P&L</div>
-                <div style='font-size:1.3rem;font-weight:700;color:#1e293b;'>₹{total_gross:+,.2f}</div>
-                <div style='font-size:.65rem;color:#f87171;'>Charges: ₹{total_charg:,.2f}</div>
-              </div>
-              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#64748b;'>Win Rate</div>
-                <div style='font-size:1.3rem;font-weight:700;color:#{'00d4aa' if win_rate>=50 else 'f87171'};'>{win_rate:.0f}%</div>
-                <div style='font-size:.65rem;color:#64748b;'>W:{wins} / L:{losses}</div>
-              </div>
-              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#64748b;'>Avg Win / Loss</div>
-                <div style='font-size:.95rem;font-weight:700;'>
-                  <span style='color:#00d4aa;'>+₹{avg_win:,.0f}</span> /
-                  <span style='color:#f87171;'>₹{avg_loss:,.0f}</span>
-                </div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
+            net_col = "#059669" if total_net >= 0 else "#dc2626"
+            jm1,jm2,jm3,jm4 = st.columns(4)
+            jm1.metric("Net P&L (after charges)", f"₹{total_net:+,.2f}",
+                       delta_color="normal" if total_net >= 0 else "inverse")
+            jm2.metric("Gross P&L",  f"₹{total_gross:+,.2f}",
+                       help=f"Total charges: ₹{total_charg:,.2f}")
+            jm3.metric("Win Rate",   f"{win_rate:.0f}%  ({wins}W/{losses}L)")
+            jm4.metric("Avg Win / Avg Loss", f"₹{avg_win:,.0f} / ₹{abs(avg_loss):,.0f}")
 
-            # ── Trade cards ───────────────────────────────────────────────────
+            st.divider()
+
+            # Trade cards
             for idx, t in enumerate(trade_log):
-                nc = "#00d4aa" if t["net_pnl"] >= 0 else "#f87171"
+                nc  = "#059669" if t["net_pnl"] >= 0 else "#dc2626"
+                nbg = "#f0fdf4" if t["net_pnl"] >= 0 else "#fff1f2"
+                icon = "✅" if t["net_pnl"] >= 0 else "❌"
+
                 with st.expander(
-                    f"{'✅' if t['net_pnl']>=0 else '❌'} {t['symbol']} {t['direction']} "
-                    f"· Net ₹{t['net_pnl']:+,.2f} · {t['time']}",
+                    f"{icon} {t['symbol']} {t['direction']} · Net ₹{t['net_pnl']:+,.2f} · {t['time']}",
                     expanded=False
                 ):
-                    tc1, tc2, tc3 = st.columns(3)
+                    tc1, tc2, tc3 = st.columns([2,2,1])
                     with tc1:
                         st.markdown(f"""
-                        <div style='font-size:.8rem;'>
-                          <div style='color:#64748b;'>Symbol</div>
-                          <div style='color:#1e293b;font-weight:700;'>{t['symbol']} · {t['direction']} · {t['qty']} qty</div>
-                          <div style='color:#64748b;margin-top:6px;'>Entry → Exit</div>
-                          <div style='color:#1e293b;'>₹{t['entry']:,.2f} → ₹{t['exit']:,.2f}</div>
-                          <div style='color:#64748b;margin-top:6px;'>Type</div>
-                          <div style='color:#1e293b;'>{t['type']}</div>
-                          {"<div style='color:#64748b;margin-top:6px;'>Notes</div><div style='color:#1e293b;'>" + t.get('note','—') + "</div>" if t.get('note') else ""}
-                        </div>
-                        """, unsafe_allow_html=True)
+                        <div style='font-size:.82rem;line-height:1.9;'>
+                          <span style='color:#64748b;'>Symbol:</span> <b style='color:#1e293b;'>{t['symbol']}</b>
+                          &nbsp;·&nbsp; <span style='color:#64748b;'>Dir:</span> <b style='color:#1e293b;'>{t['direction']}</b>
+                          &nbsp;·&nbsp; <span style='color:#64748b;'>Qty:</span> <b>{t['qty']}</b><br>
+                          <span style='color:#64748b;'>Entry:</span> <b>₹{t['entry']:,.2f}</b>
+                          &nbsp;→&nbsp; <span style='color:#64748b;'>Exit:</span> <b>₹{t['exit']:,.2f}</b><br>
+                          <span style='color:#64748b;'>Type:</span> {t['type']}<br>
+                          {"<span style='color:#64748b;'>Note:</span> " + t.get('note','') if t.get('note') else ""}
+                        </div>""", unsafe_allow_html=True)
                     with tc2:
                         st.markdown(f"""
-                        <div style='font-size:.8rem;'>
-                          <div style='color:#64748b;'>Gross P&L</div>
-                          <div style='font-size:1rem;font-weight:700;color:#1e293b;'>₹{t['gross_pnl']:+,.2f}</div>
-                          <div style='color:#64748b;margin-top:8px;'>Charge Breakdown</div>
-                          <div style='color:#64748b;'>Brokerage: <b>₹{t['brokerage']:,.2f}</b></div>
-                          <div style='color:#64748b;'>STT: <b>₹{t['stt']:,.2f}</b></div>
-                          <div style='color:#64748b;'>Exchange: <b>₹{t['exchange_chrg']:,.2f}</b></div>
-                          <div style='color:#64748b;'>SEBI: <b>₹{t['sebi']:,.2f}</b></div>
-                          <div style='color:#64748b;'>GST: <b>₹{t['gst']:,.2f}</b></div>
-                          <div style='color:#64748b;'>Stamp: <b>₹{t['stamp']:,.2f}</b></div>
-                          <div style='color:#f87171;margin-top:4px;'>Total Charges: <b>₹{t['total_charges']:,.2f}</b></div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        <div style='font-size:.8rem;line-height:1.9;'>
+                          <b style='color:#64748b;'>Charge Breakdown</b><br>
+                          Brokerage: <b>₹{t['brokerage']:,.2f}</b><br>
+                          STT: <b>₹{t['stt']:,.2f}</b><br>
+                          Exchange: <b>₹{t['exchange_chrg']:,.2f}</b><br>
+                          SEBI: <b>₹{t['sebi']:,.2f}</b><br>
+                          GST: <b>₹{t['gst']:,.2f}</b><br>
+                          Stamp: <b>₹{t['stamp']:,.2f}</b><br>
+                          <span style='color:#dc2626;font-weight:700;'>Total: ₹{t['total_charges']:,.2f}</span>
+                        </div>""", unsafe_allow_html=True)
                     with tc3:
                         st.markdown(f"""
-                        <div style='font-size:.8rem;text-align:center;'>
-                          <div style='color:#64748b;margin-bottom:4px;'>NET P&L</div>
-                          <div style='font-size:1.8rem;font-weight:800;color:{nc};'>₹{t['net_pnl']:+,.2f}</div>
-                          <div style='font-size:.85rem;color:{nc};'>{t['net_pnl_pct']:+.3f}%</div>
-                          <div style='color:#64748b;margin-top:10px;font-size:.72rem;'>Turnover</div>
-                          <div style='color:#1e293b;'>₹{t['turnover']:,.2f}</div>
-                          <div style='color:#64748b;margin-top:6px;font-size:.72rem;'>Charge %</div>
-                          <div style='color:#f87171;'>
-                            {(t['total_charges']/t['turnover']*100):.3f}% of turnover
+                        <div style='background:{nbg};border:2px solid {nc};border-radius:10px;
+                             padding:12px;text-align:center;'>
+                          <div style='font-size:.65rem;color:#64748b;margin-bottom:4px;'>NET P&L</div>
+                          <div style='font-size:1.5rem;font-weight:800;color:{nc};'>₹{t['net_pnl']:+,.2f}</div>
+                          <div style='font-size:.78rem;color:{nc};font-weight:600;'>{t['net_pnl_pct']:+.2f}%</div>
+                          <div style='font-size:.65rem;color:#64748b;margin-top:6px;'>
+                            Charges: {(t['total_charges']/t['turnover']*100):.3f}%
                           </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                    if st.button("🗑️ Remove", key=f"del_log_{idx}", type="secondary"):
-                        st.session_state.trade_log.pop(idx)
-                        st.rerun()
+                        </div>""", unsafe_allow_html=True)
+                        if st.button("🗑️ Remove", key=f"del_log_{idx}", use_container_width=True):
+                            st.session_state.trade_log.pop(idx)
+                            st.rerun()
 
             st.divider()
             jc1, jc2 = st.columns(2)
             with jc1:
-                if st.button("🗑️ Clear All Trades", type="secondary", use_container_width=True):
+                if st.button("🗑️ Clear All Trades", type="secondary", use_container_width=True, key="jclear"):
                     st.session_state.trade_log = []
                     st.rerun()
             with jc2:
-                # Export as CSV
-                if trade_log:
-                    df_export = pd.DataFrame(trade_log)
-                    csv = df_export.to_csv(index=False)
-                    st.download_button("📥 Export CSV", csv,
-                                       file_name=f"trade_journal_{ist_now().strftime('%Y%m%d')}.csv",
-                                       mime="text/csv", use_container_width=True)
+                df_export = pd.DataFrame(trade_log)
+                csv_data  = df_export.to_csv(index=False)
+                st.download_button("📥 Export CSV", csv_data,
+                                   file_name=f"trades_{ist_now().strftime('%Y%m%d')}.csv",
+                                   mime="text/csv", use_container_width=True)
         else:
-            st.info("No trades logged yet. Close a strategy trade or add one manually above.")
+            st.markdown("""
+            <div style='background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;
+                 padding:40px 24px;text-align:center;'>
+              <div style='font-size:2rem;margin-bottom:8px;'>📊</div>
+              <div style='font-size:1rem;font-weight:600;color:#334155;margin-bottom:6px;'>No trades logged yet</div>
+              <div style='font-size:.85rem;color:#94a3b8;margin-bottom:16px;'>
+                Trades are auto-logged when you close a position from the Strategies tab.<br>
+                Or add a trade manually below.
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+        # Manual trade entry (always visible at bottom)
+        st.divider()
+        with st.expander("➕ Log a Trade Manually", expanded=not bool(trade_log)):
+            lc1, lc2, lc3, lc4 = st.columns(4)
+            with lc1:
+                log_sym  = st.text_input("Symbol",    value="NIFTY",       key="log_sym")
+                log_dir  = st.selectbox("Direction",  ["LONG","SHORT"],     key="log_dir")
+            with lc2:
+                log_entry = st.number_input("Entry Price", min_value=0.01, value=100.0, step=0.05, key="log_entry")
+                log_exit  = st.number_input("Exit Price",  min_value=0.01, value=110.0, step=0.05, key="log_exit")
+            with lc3:
+                log_qty  = st.number_input("Quantity", min_value=1, value=75, key="log_qty")
+                log_type = st.selectbox("Trade Type",
+                                        ["FNO_INTRADAY","FNO_DELIVERY","EQ_INTRADAY","EQ_DELIVERY"],
+                                        key="log_type")
+            with lc4:
+                log_brok = st.number_input("Brokerage/order (₹)", min_value=0.0, value=20.0, key="log_brok")
+                log_note = st.text_input("Notes", placeholder="Optional", key="log_note")
+
+            if st.button("📥 Calculate & Log Trade", use_container_width=True,
+                         type="primary", key="log_add"):
+                pnl_data  = calc_pnl(log_entry, log_exit, log_qty, log_dir,
+                                     log_type, log_brok, log_brok)
+                entry_rec = {
+                    "time":      ist_now().strftime("%d %b %H:%M"),
+                    "symbol":    log_sym.upper(),
+                    "direction": log_dir,
+                    "qty":       log_qty,
+                    "entry":     log_entry,
+                    "exit":      log_exit,
+                    "type":      log_type,
+                    "note":      log_note,
+                    **pnl_data,
+                }
+                st.session_state.trade_log.insert(0, entry_rec)
+                st.success(f"✅ Logged! Net P&L: ₹{pnl_data['net_pnl']:+,.2f} "
+                           f"(Gross: ₹{pnl_data['gross_pnl']:+,.2f} - "
+                           f"Charges: ₹{pnl_data['total_charges']:,.2f})")
+                st.rerun()
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  LOGIN
