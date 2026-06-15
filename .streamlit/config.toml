@@ -1,7 +1,7 @@
 [theme]
 base = "light"
-primaryColor = "#0284c7"          # Richer, slightly darker Sky Blue for better contrast
-backgroundColor = "#f8fafc"       # Lighter, cleaner background (Slate 50)
-secondaryBackgroundColor = "#ffffff" # Pure white for cards/sidebar
-textColor = "#0f172a"             # Deep Navy/Slate (Slate 900) for razor-sharp text
+primaryColor = "#10b981"          # Vibrant Emerald Green
+backgroundColor = "#f4f4f5"       # Neutral, clean background (Zinc 100)
+secondaryBackgroundColor = "#ffffff" # Pure white
+textColor = "#18181b"             # Crisp near-black (Zinc 900)
 font = "sans serif"
