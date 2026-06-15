@@ -34,103 +34,159 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── CSS — LIGHT PROFESSIONAL THEME ──────────────────────────────────────────
-# Color palette:
-#   BG main:    #f0f4f8   (cool off-white)
-#   BG card:    #ffffff   (pure white cards)
-#   BG sidebar: #f8fafc
-#   Border:     #dde3ec
-#   Text main:  #1a2332   (near-black)
-#   Text muted: #64748b
-#   Accent:     #0ea5e9   (professional sky blue)
-#   BUY green:  #059669
-#   SELL red:   #dc2626
-#   Amber:      #d97706
+# ─── CSS — CLEAN LIGHT PROFESSIONAL THEME ────────────────────────────────────
+# Palette: white cards · #f1f5f9 page bg · #1e293b text · #0ea5e9 accent
+# BUY: #059669 green · SELL: #dc2626 red · Chart: dark bg (industry standard)
 
 st.markdown("""<style>
-/* ── Base & layout ── */
+/* ══ RESET & BASE ══ */
 #MainMenu,footer,header{visibility:hidden}
-.block-container{padding-top:.8rem;padding-bottom:.5rem}
-.stApp{background:#f0f4f8}
-section[data-testid="stSidebar"]{background:#f8fafc;border-right:1px solid #dde3ec}
-section[data-testid="stSidebar"] *{color:#1a2332!important}
+.block-container{padding-top:.8rem;padding-bottom:.5rem;max-width:100%}
 
-/* ── Streamlit native metric cards ── */
+/* Force light background on root */
+.stApp,.main,.main>.block-container{background:#f1f5f9!important}
+
+/* ══ SIDEBAR ══ */
+[data-testid="stSidebar"]{background:#ffffff!important;border-right:1.5px solid #e2e8f0!important}
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown div,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] span{color:#334155!important}
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stTextInput label{color:#64748b!important;font-size:.75rem!important}
+
+/* ══ GLOBAL TEXT ══ */
+p,span,label,.stMarkdown{color:#334155}
+h1,h2,h3,h4{color:#0f172a!important;font-weight:700}
+
+/* ══ METRIC CARDS ══ */
 [data-testid="metric-container"]{
-  background:#ffffff;border:1px solid #dde3ec;border-radius:10px;
-  padding:8px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-[data-testid="stMetricValue"]{font-size:1rem!important;font-weight:700;color:#1a2332!important}
+  background:#ffffff!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:12px!important;
+  padding:10px 16px!important;
+  box-shadow:0 1px 4px rgba(15,23,42,.08)!important}
+[data-testid="stMetricValue"]{font-size:1.05rem!important;font-weight:800!important;color:#0f172a!important}
+[data-testid="stMetricLabel"]{font-size:.7rem!important;color:#64748b!important;font-weight:600!important}
 [data-testid="stMetricDelta"]{font-size:.72rem!important}
 
-/* ── Tabs ── */
-.stTabs [data-baseweb="tab-list"]{background:#f0f4f8;border-radius:10px;padding:3px}
-.stTabs [data-baseweb="tab"]{border-radius:8px;font-size:.82rem;font-weight:600;color:#64748b}
-.stTabs [aria-selected="true"]{background:#ffffff;color:#0ea5e9!important;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+/* ══ TABS ══ */
+.stTabs [data-baseweb="tab-list"]{
+  background:#e2e8f0!important;border-radius:12px!important;
+  padding:4px!important;gap:4px!important}
+.stTabs [data-baseweb="tab"]{
+  border-radius:9px!important;font-size:.82rem!important;
+  font-weight:600!important;color:#64748b!important;padding:6px 14px!important}
+.stTabs [aria-selected="true"]{
+  background:#ffffff!important;color:#0ea5e9!important;
+  box-shadow:0 2px 8px rgba(14,165,233,.15)!important}
 
-/* ── Expanders ── */
-.streamlit-expanderHeader{background:#ffffff;border:1px solid #dde3ec;border-radius:8px;
-  font-weight:600;color:#1a2332;font-size:.85rem}
-.streamlit-expanderContent{background:#ffffff;border:1px solid #dde3ec;border-top:none;
-  border-radius:0 0 8px 8px;padding:12px}
+/* ══ EXPANDERS ══ */
+details{background:#ffffff!important;border:1px solid #e2e8f0!important;
+  border-radius:10px!important;margin-bottom:6px!important;
+  box-shadow:0 1px 3px rgba(15,23,42,.05)!important}
+details summary{font-weight:600!important;color:#1e293b!important;
+  font-size:.85rem!important;padding:10px 14px!important}
+details[open] summary{border-bottom:1px solid #f1f5f9!important}
 
-/* ── Buttons ── */
-.stButton>button{border-radius:8px;font-weight:600;font-size:.8rem;border:1px solid #dde3ec;
-  background:#ffffff;color:#1a2332;transition:all .15s}
-.stButton>button:hover{background:#f0f4f8;border-color:#0ea5e9;color:#0ea5e9}
-.stButton>button[kind="primary"]{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
-.stButton>button[kind="primary"]:hover{background:#0284c7}
+/* ══ BUTTONS ══ */
+.stButton>button{
+  border-radius:8px!important;font-weight:600!important;font-size:.8rem!important;
+  border:1.5px solid #e2e8f0!important;background:#ffffff!important;
+  color:#334155!important;padding:5px 14px!important;
+  transition:all .15s ease!important;box-shadow:0 1px 2px rgba(0,0,0,.05)!important}
+.stButton>button:hover{
+  background:#f8fafc!important;border-color:#0ea5e9!important;color:#0ea5e9!important}
+.stButton>button[kind="primary"]{
+  background:linear-gradient(135deg,#0ea5e9,#0284c7)!important;
+  color:#fff!important;border-color:#0ea5e9!important;
+  box-shadow:0 2px 8px rgba(14,165,233,.3)!important}
+.stButton>button[kind="primary"]:hover{
+  background:linear-gradient(135deg,#0284c7,#0369a1)!important}
+.stButton>button[kind="secondary"]{
+  background:#f8fafc!important;color:#64748b!important;border-color:#e2e8f0!important}
 
-/* ── Inputs / selects ── */
-.stTextInput>div>div>input,.stSelectbox>div>div,.stNumberInput>div>div>input{
-  background:#ffffff;border:1px solid #dde3ec;border-radius:8px;color:#1a2332;font-size:.83rem}
-.stSlider [data-baseweb="slider"]{margin-top:4px}
+/* ══ INPUTS ══ */
+.stTextInput>div>div>input{
+  background:#ffffff!important;border:1.5px solid #e2e8f0!important;
+  border-radius:8px!important;color:#1e293b!important;font-size:.83rem!important}
+.stTextInput>div>div>input:focus{border-color:#0ea5e9!important;
+  box-shadow:0 0 0 3px rgba(14,165,233,.1)!important}
+.stSelectbox>div>div{
+  background:#ffffff!important;border:1.5px solid #e2e8f0!important;
+  border-radius:8px!important;color:#1e293b!important}
+.stNumberInput>div>div>input{
+  background:#ffffff!important;border:1.5px solid #e2e8f0!important;
+  border-radius:8px!important;color:#1e293b!important}
 
-/* ── Divider ── */
-hr{border-color:#dde3ec}
+/* ══ SLIDER ══ */
+[data-baseweb="slider"] [data-testid="stSlider"]{margin-top:4px}
+[data-baseweb="slider"] div[role="slider"]{
+  background:#0ea5e9!important;border:2px solid #ffffff!important;
+  box-shadow:0 1px 6px rgba(14,165,233,.4)!important}
+[data-baseweb="slider"] div[data-testid="stSliderTrack"]{background:#e2e8f0!important}
+[data-baseweb="slider"] div[data-testid="stSliderTrackFill"]{background:#0ea5e9!important}
 
-/* ── Signal cards ── */
-.sig-BUY    {background:#ecfdf5;border:1.5px solid #059669;border-radius:10px;padding:12px;text-align:center}
-.sig-SELL   {background:#fef2f2;border:1.5px solid #dc2626;border-radius:10px;padding:12px;text-align:center}
-.sig-NEUTRAL{background:#f8fafc;border:1.5px solid #64748b;border-radius:10px;padding:12px;text-align:center}
-.sig-label  {font-size:1.5rem;font-weight:800;letter-spacing:.5px;color:#1a2332}
-.sig-sub    {font-size:.78rem;color:#64748b;margin-top:3px}
+/* ══ DATAFRAME ══ */
+[data-testid="stDataFrame"]{border:1px solid #e2e8f0!important;border-radius:10px!important}
+.dvn-scroller{background:#ffffff!important}
+
+/* ══ ALERTS / INFO BOXES ══ */
+.stAlert{border-radius:10px!important;border-width:1px!important}
+[data-testid="stInfoBox"]{background:#eff6ff!important;border-color:#bfdbfe!important;border-radius:10px!important}
+
+/* ══ CAPTION / SMALL TEXT ══ */
+.stCaption,.stCaption p{color:#94a3b8!important;font-size:.72rem!important}
+
+/* ══ DIVIDER ══ */
+hr{border:none!important;border-top:1px solid #e2e8f0!important;margin:12px 0!important}
+
+/* ══ CUSTOM COMPONENT CLASSES ══ */
+/* Signal cards */
+.sig-BUY    {background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:14px;text-align:center}
+.sig-SELL   {background:#fff1f2;border:2px solid #dc2626;border-radius:12px;padding:14px;text-align:center}
+.sig-NEUTRAL{background:#f8fafc;border:2px solid #94a3b8;border-radius:12px;padding:14px;text-align:center}
+.sig-label  {font-size:1.4rem;font-weight:800;letter-spacing:.3px;color:#0f172a}
+.sig-sub    {font-size:.78rem;color:#64748b;margin-top:4px}
 .sig-score  {font-size:.72rem;color:#64748b;margin-top:2px}
 
-/* ── Indicator bar ── */
-.ind-row{display:flex;flex-wrap:wrap;gap:10px;background:#ffffff;border:1px solid #dde3ec;
-         border-radius:8px;padding:7px 14px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+/* Indicator bar */
+.ind-row{display:flex;flex-wrap:wrap;gap:10px;background:#ffffff;
+         border:1px solid #e2e8f0;border-radius:10px;padding:8px 14px;
+         margin-bottom:8px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
 .ind-chip{font-size:.73rem;color:#64748b}
-.ind-chip span{color:#1a2332;font-weight:700;margin-left:3px}
+.ind-chip span{color:#1e293b;font-weight:700;margin-left:3px}
 
-/* ── Option chain table ── */
-.oc-table{width:100%;border-collapse:collapse;font-size:.72rem}
-.oc-table th{color:#64748b;padding:5px 6px;text-align:center;
-             border-bottom:1.5px solid #dde3ec;font-weight:600;background:#f8fafc}
-.oc-table td{padding:4px 6px;text-align:center;border-bottom:1px solid #f0f4f8}
+/* Option chain table */
+.oc-table{width:100%;border-collapse:collapse;font-size:.73rem}
+.oc-table th{color:#64748b;padding:6px 8px;text-align:center;
+             border-bottom:2px solid #e2e8f0;font-weight:700;
+             background:#f8fafc;letter-spacing:.3px;text-transform:uppercase;font-size:.65rem}
+.oc-table td{padding:5px 8px;text-align:center;border-bottom:1px solid #f1f5f9;color:#334155}
 .oc-table tr:hover td{background:#f8fafc}
-.oc-call  {color:#059669;font-weight:700}
-.oc-put   {color:#dc2626;font-weight:700}
-.oc-atm   {background:#fef9ec;font-weight:800;color:#d97706}
-.oc-strike{color:#1a2332;font-weight:700}
-.oc-iv    {color:#7c3aed;font-size:.68rem}
+.oc-call  {color:#059669!important;font-weight:700}
+.oc-put   {color:#dc2626!important;font-weight:700}
+.oc-atm   {background:#fffbeb!important;font-weight:800;color:#d97706!important}
+.oc-strike{color:#0f172a!important;font-weight:800}
+.oc-iv    {color:#7c3aed!important;font-size:.68rem}
 
-/* ── Alert list ── */
-.alert-item{display:flex;gap:8px;align-items:flex-start;padding:6px 0;
-            border-bottom:1px solid #f0f4f8;font-size:.78rem}
+/* Alert list */
+.alert-item{display:flex;gap:8px;align-items:flex-start;padding:7px 0;
+            border-bottom:1px solid #f1f5f9;font-size:.78rem}
 .alert-item:last-child{border-bottom:none}
-.adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.adot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
 
-/* ── Strength meter rows ── */
-.str-row{display:flex;justify-content:space-between;padding:4px 0;font-size:.78rem;
-         border-bottom:1px solid #f0f4f8}
+/* Strength rows */
+.str-row{display:flex;justify-content:space-between;align-items:center;
+         padding:5px 0;font-size:.78rem;border-bottom:1px solid #f1f5f9}
 .str-row:last-child{border-bottom:none}
 .str-name{color:#64748b;font-weight:500}
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:#f0f4f8}
-::-webkit-scrollbar-thumb{background:#dde3ec;border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:#64748b}
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#f1f5f9;border-radius:10px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
 </style>""", unsafe_allow_html=True)
 
 # ─── INSTRUMENTS ─────────────────────────────────────────────────────────────
@@ -140,8 +196,8 @@ SECURITY_IDS = {
     "BANKNIFTY":  {"id":"25",    "segment":"IDX_I",  "name":"Bank Nifty",          "sector":"Index"},
     "FINNIFTY":   {"id":"27",    "segment":"IDX_I",  "name":"Fin Nifty",           "sector":"Index"},
     "MIDCPNIFTY": {"id":"442",   "segment":"IDX_I",  "name":"Midcap Nifty",        "sector":"Index"},
-    "SENSEX":     {"id":"1",     "segment":"IDX_I",  "name":"BSE Sensex",          "sector":"Index"},
-    "BANKEX":     {"id":"12",    "segment":"IDX_I",  "name":"BSE Bankex",          "sector":"Index"},
+    "SENSEX":     {"id":"51",    "segment":"IDX_I",  "name":"BSE Sensex",          "sector":"Index"},
+    "BANKEX":     {"id":"435",   "segment":"IDX_I",  "name":"BSE Bankex",          "sector":"Index"},
     # BANKING
     "HDFCBANK":   {"id":"1333",  "segment":"NSE_EQ", "name":"HDFC Bank",           "sector":"Banking"},
     "ICICIBANK":  {"id":"4963",  "segment":"NSE_EQ", "name":"ICICI Bank",          "sector":"Banking"},
@@ -349,8 +405,6 @@ def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15
     For intraday same-day fetch: fromDate=today 09:15:00, toDate=today 15:30:00
     """
     today    = datetime.now().date()
-    is_intraday = interval in ("1", "5", "15", "25", "60")
-
     if date_mode == "Today":
         fd = today
         td = today
@@ -382,12 +436,8 @@ def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15
         fd = today - timedelta(days=5)
         td = today
 
-    if is_intraday:
-        # Intraday API requires full datetime strings
-        return (f"{fd} 09:15:00", f"{td} 15:30:00")
-    else:
-        # Daily historical API uses plain date strings
-        return (str(fd), str(td))
+    # Both intraday and daily use plain YYYY-MM-DD (confirmed from Dhan PDF docs)
+    return (str(fd), str(td))
 
 def _instrument_type(segment):
     """Map Dhan segment to instrument type string."""
@@ -952,11 +1002,11 @@ def show_option_chain_tab(sym, ltp):
                 ⚠️ Option Chain Not Available for {sym}
               </div>
               <div style='color:#64748b;font-size:.83rem;line-height:1.8;'>
-                <b style='color:#1a2332;'>{sym_name}</b> ({seg_disp}) does not appear to be in the NSE F&O segment,
+                <b style='color:#1e293b;'>{sym_name}</b> ({seg_disp}) does not appear to be in the NSE F&O segment,
                 or no active expiries were found.<br>
                 Option chains exist only for indices and ~180 F&O-eligible stocks on NSE.<br><br>
-                You can still use the <b style='color:#1a2332;'>📈 Chart & Analysis</b> and
-                <b style='color:#1a2332;'>🎯 Strategies</b> tabs for full technical analysis of {sym}.
+                You can still use the <b style='color:#1e293b;'>📈 Chart & Analysis</b> and
+                <b style='color:#1e293b;'>🎯 Strategies</b> tabs for full technical analysis of {sym}.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -988,13 +1038,13 @@ def show_option_chain_tab(sym, ltp):
 
     # Summary bar
     st.markdown(f"""
-    <div style='display:flex;gap:20px;background:#ffffff;border:1px solid #dde3ec;
+    <div style='display:flex;gap:20px;background:#ffffff;border:1px solid #e2e8f0;
          border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:.8rem;flex-wrap:wrap;'>
-      <span>Spot: <b style='color:#1a2332'>₹{spot:,.2f}</b></span>
+      <span>Spot: <b style='color:#1e293b'>₹{spot:,.2f}</b></span>
       <span>PCR: <b style='color:{pcr_col}'>{pcr:.2f}</b></span>
       <span>Call OI: <b style='color:#f87171'>{fmt_oi(total_ce_oi)}</b></span>
       <span>Put OI: <b style='color:#00d4aa'>{fmt_oi(total_pe_oi)}</b></span>
-      <span>Lot: <b style='color:#1a2332'>{lot}</b></span>
+      <span>Lot: <b style='color:#1e293b'>{lot}</b></span>
       <span style='color:#64748b'>Updated: {datetime.fromtimestamp(st.session_state.oc_last_fetch.get(oc_key,now_ts)).strftime("%H:%M:%S")}</span>
     </div>
     """, unsafe_allow_html=True)
@@ -1111,15 +1161,15 @@ def show_option_chain_tab(sym, ltp):
         delta_opt  = sel_row["ce_delta"] if is_ce else sel_row["pe_delta"]
 
         st.markdown(f"""
-        <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;
+        <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;
              margin:8px 0;display:flex;gap:20px;flex-wrap:wrap;font-size:.8rem;'>
-          <span>LTP: <b style='color:#1a2332'>₹{fmt(ltp_opt)}</b></span>
+          <span>LTP: <b style='color:#1e293b'>₹{fmt(ltp_opt)}</b></span>
           <span>Bid: <b style='color:#00d4aa'>₹{fmt(bid_opt)}</b></span>
           <span>Ask: <b style='color:#f87171'>₹{fmt(ask_opt)}</b></span>
           <span>IV: <b style='color:#a78bfa'>{iv_opt}%</b></span>
           <span>Delta: <b style='color:#f59e0b'>{delta_opt}</b></span>
           <span>Sec ID: <b style='color:#64748b'>{sec_id_opt}</b></span>
-          <span>Qty: <b style='color:#1a2332'>{lots*lot} ({lots} lot{'s' if lots>1 else ''})</b></span>
+          <span>Qty: <b style='color:#1e293b'>{lots*lot} ({lots} lot{'s' if lots>1 else ''})</b></span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1282,21 +1332,21 @@ def show_portfolio_tab():
             net_col = "#00d4aa" if total_net >= 0 else "#f87171"
             st.markdown(f"""
             <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;'>
-              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
                 <div style='font-size:.7rem;color:#64748b;'>Net P&L (after charges)</div>
                 <div style='font-size:1.3rem;font-weight:800;color:{net_col};'>₹{total_net:+,.2f}</div>
               </div>
-              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
                 <div style='font-size:.7rem;color:#64748b;'>Gross P&L</div>
-                <div style='font-size:1.3rem;font-weight:700;color:#1a2332;'>₹{total_gross:+,.2f}</div>
+                <div style='font-size:1.3rem;font-weight:700;color:#1e293b;'>₹{total_gross:+,.2f}</div>
                 <div style='font-size:.65rem;color:#f87171;'>Charges: ₹{total_charg:,.2f}</div>
               </div>
-              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
                 <div style='font-size:.7rem;color:#64748b;'>Win Rate</div>
                 <div style='font-size:1.3rem;font-weight:700;color:#{'00d4aa' if win_rate>=50 else 'f87171'};'>{win_rate:.0f}%</div>
                 <div style='font-size:.65rem;color:#64748b;'>W:{wins} / L:{losses}</div>
               </div>
-              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+              <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;'>
                 <div style='font-size:.7rem;color:#64748b;'>Avg Win / Loss</div>
                 <div style='font-size:.95rem;font-weight:700;'>
                   <span style='color:#00d4aa;'>+₹{avg_win:,.0f}</span> /
@@ -1319,19 +1369,19 @@ def show_portfolio_tab():
                         st.markdown(f"""
                         <div style='font-size:.8rem;'>
                           <div style='color:#64748b;'>Symbol</div>
-                          <div style='color:#1a2332;font-weight:700;'>{t['symbol']} · {t['direction']} · {t['qty']} qty</div>
+                          <div style='color:#1e293b;font-weight:700;'>{t['symbol']} · {t['direction']} · {t['qty']} qty</div>
                           <div style='color:#64748b;margin-top:6px;'>Entry → Exit</div>
-                          <div style='color:#1a2332;'>₹{t['entry']:,.2f} → ₹{t['exit']:,.2f}</div>
+                          <div style='color:#1e293b;'>₹{t['entry']:,.2f} → ₹{t['exit']:,.2f}</div>
                           <div style='color:#64748b;margin-top:6px;'>Type</div>
-                          <div style='color:#1a2332;'>{t['type']}</div>
-                          {"<div style='color:#64748b;margin-top:6px;'>Notes</div><div style='color:#1a2332;'>" + t.get('note','—') + "</div>" if t.get('note') else ""}
+                          <div style='color:#1e293b;'>{t['type']}</div>
+                          {"<div style='color:#64748b;margin-top:6px;'>Notes</div><div style='color:#1e293b;'>" + t.get('note','—') + "</div>" if t.get('note') else ""}
                         </div>
                         """, unsafe_allow_html=True)
                     with tc2:
                         st.markdown(f"""
                         <div style='font-size:.8rem;'>
                           <div style='color:#64748b;'>Gross P&L</div>
-                          <div style='font-size:1rem;font-weight:700;color:#1a2332;'>₹{t['gross_pnl']:+,.2f}</div>
+                          <div style='font-size:1rem;font-weight:700;color:#1e293b;'>₹{t['gross_pnl']:+,.2f}</div>
                           <div style='color:#64748b;margin-top:8px;'>Charge Breakdown</div>
                           <div style='color:#64748b;'>Brokerage: <b>₹{t['brokerage']:,.2f}</b></div>
                           <div style='color:#64748b;'>STT: <b>₹{t['stt']:,.2f}</b></div>
@@ -1349,7 +1399,7 @@ def show_portfolio_tab():
                           <div style='font-size:1.8rem;font-weight:800;color:{nc};'>₹{t['net_pnl']:+,.2f}</div>
                           <div style='font-size:.85rem;color:{nc};'>{t['net_pnl_pct']:+.3f}%</div>
                           <div style='color:#64748b;margin-top:10px;font-size:.72rem;'>Turnover</div>
-                          <div style='color:#1a2332;'>₹{t['turnover']:,.2f}</div>
+                          <div style='color:#1e293b;'>₹{t['turnover']:,.2f}</div>
                           <div style='color:#64748b;margin-top:6px;font-size:.72rem;'>Charge %</div>
                           <div style='color:#f87171;'>
                             {(t['total_charges']/t['turnover']*100):.3f}% of turnover
@@ -1385,7 +1435,7 @@ def show_login():
     _,col,_ = st.columns([1,1.4,1])
     with col:
         st.markdown("""
-        <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:14px;
+        <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;
              padding:2.5rem 2rem;max-width:460px;margin:3rem auto;'>
           <div style='font-size:2rem;font-weight:800;color:#00d4aa;text-align:center;margin-bottom:.3rem;'>⚡ NiftyEdge Pro</div>
           <div style='text-align:center;color:#64748b;font-size:.83rem;margin-bottom:1.5rem;'>
@@ -1488,7 +1538,7 @@ def show_dashboard():
                         for lr in live_res[:8]:
                             lc1, lc2 = st.columns([3,1])
                             with lc1:
-                                st.markdown(f"<div style='font-size:.72rem;color:#1a2332;'>{lr['symbol']} <span style='color:#64748b;'>ID:{lr['id']}</span><br><span style='color:#64748b;font-size:.65rem;'>{lr['name']}</span></div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='font-size:.72rem;color:#1e293b;'>{lr['symbol']} <span style='color:#64748b;'>ID:{lr['id']}</span><br><span style='color:#64748b;font-size:.65rem;'>{lr['name']}</span></div>", unsafe_allow_html=True)
                             with lc2:
                                 if st.button("Load", key=f"live_load_{lr['id']}", use_container_width=True):
                                     sym_key = lr["symbol"].upper().strip()
@@ -1640,10 +1690,10 @@ def show_dashboard():
     market_txt = f"{mkt_emoji} {mkt_status}"
     st.markdown(f"""
     <div style='display:flex;justify-content:space-between;align-items:center;
-         background:#ffffff;border:1px solid #dde3ec;border-radius:8px;
+         background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;
          padding:7px 16px;margin-bottom:8px;'>
       <span style='font-size:.95rem;font-weight:700;color:#00d4aa;'>⚡ NiftyEdge Pro</span>
-      <span style='font-size:.85rem;color:#1a2332;font-weight:600;'>{sym}
+      <span style='font-size:.85rem;color:#1e293b;font-weight:600;'>{sym}
         <span style='color:#64748b;font-weight:400;font-size:.73rem;'> {sym_inf.get("name","")} · {sym_inf.get("sector","")}</span>
       </span>
       <span style='font-size:.78rem;'><span style='color:{mkt_col};font-weight:700;'>{mkt_emoji} {mkt_status}</span>
@@ -1855,11 +1905,11 @@ def show_dashboard():
                 fno_action_html = ""
                 if is_fno and stype != "NEUTRAL":
                     fno_action_html = f"""
-                      <div style='margin-top:8px;padding:8px 10px;background:#f0f4f8;
+                      <div style='margin-top:8px;padding:8px 10px;background:#f1f5f9;
                            border-radius:7px;border:.5px solid {opt_border};'>
                         <div style='font-size:.65rem;color:#64748b;margin-bottom:2px;'>OPTIONS ACTION</div>
                         <div style='font-size:1rem;font-weight:800;color:{opt_color};'>{opt_emoji} {opt_action}</div>
-                        <div style='font-size:.72rem;color:#1a2332;margin-top:3px;'>
+                        <div style='font-size:.72rem;color:#1e293b;margin-top:3px;'>
                           Preferred: <b>{strike_lbl}</b>
                         </div>
                         <div style='font-size:.68rem;color:#64748b;'>
@@ -1873,7 +1923,7 @@ def show_dashboard():
                     eq_action = "BUY shares" if stype == "BUY" else "SELL / SHORT shares"
                     eq_color  = "#00d4aa" if stype == "BUY" else "#f87171"
                     fno_action_html = f"""
-                      <div style='margin-top:8px;padding:8px 10px;background:#f0f4f8;
+                      <div style='margin-top:8px;padding:8px 10px;background:#f1f5f9;
                            border-radius:7px;border:.5px solid {opt_border};'>
                         <div style='font-size:.65rem;color:#64748b;margin-bottom:2px;'>EQUITY ACTION</div>
                         <div style='font-size:.95rem;font-weight:700;color:{eq_color};'>{opt_emoji} {eq_action}</div>
@@ -1910,20 +1960,20 @@ def show_dashboard():
                   <div class='str-row'><span class='str-name'>MACD Hist</span>{vb(ind.get("macd_hist",0)>0,"🟢 Bull","🔴 Bear")}</div>
                   <div class='str-row'><span class='str-name'>VWAP</span>{vb("Above VWAP" in rs,"🟢 Above","🔴 Below")}</div>
                   <div class='str-row'><span class='str-name'>Patterns</span>
-                    <span style='color:#1a2332'>{", ".join(p["pattern"] for p in pats) or "—"}</span></div>
+                    <span style='color:#1e293b'>{", ".join(p["pattern"] for p in pats) or "—"}</span></div>
                   <div class='str-row'><span class='str-name'>LTP</span>
-                    <span style='color:#1a2332'>₹{close:,.2f}</span></div>
+                    <span style='color:#1e293b'>₹{close:,.2f}</span></div>
                   <div class='str-row'><span class='str-name'>ATM Strike</span>
                     <span style='color:#f59e0b;font-weight:700'>{int(atm_strike)}</span></div>
                   <div class='str-row'><span class='str-name'>ATR</span>
-                    <span style='color:#1a2332'>{atr:.1f} pts</span></div>
+                    <span style='color:#1e293b'>{atr:.1f} pts</span></div>
                 </div>""", unsafe_allow_html=True)
 
                 # RSI bar
                 rp  = int(min(max(rsi_v,0),100))
                 bc2 = "#f87171" if rsi_v>70 or rsi_v<30 else "#00d4aa"
                 st.markdown(f"""<div style='margin:8px 0 2px'>
-                  <div style='height:5px;border-radius:3px;background:#f0f4f8;overflow:hidden'>
+                  <div style='height:5px;border-radius:3px;background:#f1f5f9;overflow:hidden'>
                     <div style='height:100%;width:{rp}%;background:{bc2};border-radius:3px'></div></div>
                   <div style='display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-top:2px'>
                     <span>OS 30</span><span>RSI</span><span>OB 70</span></div></div>""",
@@ -2119,9 +2169,9 @@ def show_strategy_tab(result, sym, tf_lbl):
             d     = trade.get("direction","LONG")
             pnl   = ((close-entry)/entry*100) if d=="LONG" and entry else ((entry-close)/entry*100) if entry else 0
             pc    = "#00d4aa" if pnl>=0 else "#f87171"
-            st.markdown(f"""<div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;
+            st.markdown(f"""<div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;
                  padding:9px 14px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;'>
-              <div><b style='color:#1a2332'>{strat}</b>
+              <div><b style='color:#1e293b'>{strat}</b>
                 <span style='color:#64748b;font-size:.73rem;margin-left:8px;'>{d} · @{entry:.0f} · SL {trade.get("stop_loss",0):.0f}</span></div>
               <div style='font-weight:700;color:{pc}'>{pnl:+.2f}%</div></div>""",
             unsafe_allow_html=True)
@@ -2156,9 +2206,9 @@ def show_config_tab():
     for col, (pname, pdata) in zip([p1,p2,p3,p4], PROFILES.items()):
         with col:
             st.markdown(f"""
-            <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:10px;
+            <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;
                  padding:10px;text-align:center;margin-bottom:8px;'>
-              <div style='font-size:.95rem;font-weight:700;color:#1a2332;'>{pname}</div>
+              <div style='font-size:.95rem;font-weight:700;color:#1e293b;'>{pname}</div>
               <div style='font-size:.65rem;color:#64748b;margin-top:3px;'>{pdata['desc']}</div>
             </div>""", unsafe_allow_html=True)
             if st.button(f"Apply", key=f"preset_{pname}", use_container_width=True):
@@ -2210,8 +2260,8 @@ def show_config_tab():
             t3_bar = min(int(t3_rr / 10 * 100), 100)
             sl_bar = min(int(sl_atr / 3.0 * 100), 100)
             st.markdown(f"""
-            <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:10px;padding:14px;'>
-              <div style='font-size:.8rem;font-weight:700;color:#1a2332;margin-bottom:10px;'>
+            <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;'>
+              <div style='font-size:.8rem;font-weight:700;color:#1e293b;margin-bottom:10px;'>
                 Per ₹100 Risk Visualizer
               </div>
               <div style='font-size:.72rem;color:#64748b;margin-bottom:3px;'>SL Width (ATR×{sl_atr})</div>
@@ -2254,7 +2304,7 @@ def show_config_tab():
         with col2:
             quality = "🔴 Loose" if ms < 30 else "🟡 Standard" if ms < 50 else "🟢 Strict"
             st.markdown(f"""
-            <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;
+            <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
                  padding:10px;text-align:center;margin-top:4px;'>
               <div style='font-size:.7rem;color:#64748b;'>Filter Quality</div>
               <div style='font-size:1.1rem;font-weight:700;'>{quality}</div>
@@ -2303,17 +2353,17 @@ def show_config_tab():
         accuracy = ["~40%","~50%","~60%","~70%","~80%","~85%+"][mc-1] if mc <= 6 else "—"
         st.markdown(f"""
         <div style='display:flex;gap:16px;margin-top:8px;'>
-          <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:8px 14px;flex:1;text-align:center;'>
+          <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;flex:1;text-align:center;'>
             <div style='font-size:.65rem;color:#64748b;'>Trade Frequency</div>
-            <div style='font-size:.9rem;font-weight:700;color:#1a2332;'>{trade_freq}</div>
+            <div style='font-size:.9rem;font-weight:700;color:#1e293b;'>{trade_freq}</div>
           </div>
-          <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:8px 14px;flex:1;text-align:center;'>
+          <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;flex:1;text-align:center;'>
             <div style='font-size:.65rem;color:#64748b;'>Est. Accuracy</div>
             <div style='font-size:.9rem;font-weight:700;color:#059669;'>{accuracy}</div>
           </div>
-          <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:8px 14px;flex:2;'>
+          <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;flex:2;'>
             <div style='font-size:.65rem;color:#64748b;'>Pro Recommendation</div>
-            <div style='font-size:.72rem;color:#1a2332;'>{"Use for quick scalps — accept more losers" if mc <= 2 else "Standard day trading setup" if mc == 3 else "Professional standard — best balance" if mc == 4 else "High conviction only — wait patiently" if mc == 5 else "Extreme patience required — 1–2 trades/week"}</div>
+            <div style='font-size:.72rem;color:#1e293b;'>{"Use for quick scalps — accept more losers" if mc <= 2 else "Standard day trading setup" if mc == 3 else "Professional standard — best balance" if mc == 4 else "High conviction only — wait patiently" if mc == 5 else "Extreme patience required — 1–2 trades/week"}</div>
           </div>
         </div>""", unsafe_allow_html=True)
         st.info("💡 **Professional standard:** 4/6 confluences. Top traders wait for 4–5 independent signals before entering.")
