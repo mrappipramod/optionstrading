@@ -1,5 +1,5 @@
 [theme]
-base = "light"
+base = "dark"
 primaryColor = "#10b981"          # Vibrant Emerald Green
 backgroundColor = "#f4f4f5"       # Neutral, clean background (Zinc 100)
 secondaryBackgroundColor = "#ffffff" # Pure white
