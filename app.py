@@ -381,7 +381,7 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
 
     # ── MACD Histogram ──
     if "macd_hist" in df.columns:
-        macd_colors = [COLORS["green"]+"88" if v >= 0 else COLORS["red"]+"88" for v in df["macd_hist"]]
+        macd_colors = ["rgba(0,212,170,0.53)" if v >= 0 else "rgba(248,113,113,0.53)" for v in df["macd_hist"]]
         fig.add_trace(go.Bar(
             x=df["dt"], y=df["macd_hist"],
             marker_color=macd_colors, name="MACD Hist", showlegend=False,
