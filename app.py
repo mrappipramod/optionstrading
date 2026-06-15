@@ -373,7 +373,7 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
             ), row=1, col=1)
 
     # ── Volume ──
-    vol_colors = [COLORS["green"]+"88" if r["c"] >= r["o"] else COLORS["red"]+"88" for _, r in df.iterrows()]
+    vol_colors = ["rgba(0,212,170,0.53)" if r["c"] >= r["o"] else "rgba(248,113,113,0.53)" for _, r in df.iterrows()]
     fig.add_trace(go.Bar(
         x=df["dt"], y=df["v"],
         marker_color=vol_colors, name="Volume", showlegend=False,
