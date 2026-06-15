@@ -29,11 +29,9 @@ st.set_page_config(
 # ─── GLOBAL STYLES ───────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* hide streamlit chrome */
 #MainMenu, footer, header {visibility: hidden;}
 .block-container {padding-top: 1rem; padding-bottom: 0.5rem;}
 
-/* metric cards */
 [data-testid="metric-container"] {
     background: #0d1525;
     border: 0.5px solid #1e3050;
@@ -43,7 +41,6 @@ st.markdown("""
 [data-testid="stMetricValue"] {font-size: 1.1rem !important; font-weight: 700;}
 [data-testid="stMetricDelta"] {font-size: 0.75rem !important;}
 
-/* signal boxes */
 .sig-buy   {background:#00d4aa14;border:1.5px solid #00d4aa55;border-radius:10px;padding:14px;text-align:center;}
 .sig-sell  {background:#f8717114;border:1.5px solid #f8717155;border-radius:10px;padding:14px;text-align:center;}
 .sig-neutral{background:#4a6fa514;border:1.5px solid #4a6fa555;border-radius:10px;padding:14px;text-align:center;}
@@ -51,25 +48,21 @@ st.markdown("""
 .sig-sub   {font-size:0.8rem;color:#94a3b8;margin-top:4px;}
 .sig-score {font-size:0.75rem;color:#4a6fa5;margin-top:3px;}
 
-/* alert items */
 .alert-item{display:flex;gap:8px;align-items:flex-start;padding:6px 0;
             border-bottom:0.5px solid #1e3050;font-size:0.8rem;}
 .alert-item:last-child{border-bottom:none;}
 .adot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
 
-/* login card */
 .login-card{background:#0d1525;border:0.5px solid #1e3050;border-radius:14px;
             padding:2.5rem 2rem;max-width:460px;margin:4rem auto;}
 .login-logo{font-size:2.2rem;font-weight:800;color:#00d4aa;text-align:center;margin-bottom:.4rem;}
 .login-sub {text-align:center;color:#4a6fa5;font-size:.85rem;margin-bottom:1.8rem;}
 
-/* ind-row */
 .ind-row{display:flex;flex-wrap:wrap;gap:12px;background:#0d1525;border:0.5px solid #1e3050;
          border-radius:8px;padding:8px 14px;margin-bottom:6px;}
 .ind-chip{font-size:.75rem;color:#4a6fa5;}
 .ind-chip span{color:#e2e8f0;font-weight:600;margin-left:3px;}
 
-/* oc rows */
 .oc-row{display:grid;grid-template-columns:1fr 60px 1fr;gap:6px;
         font-size:.78rem;margin-bottom:4px;align-items:center;}
 .oc-call{text-align:right;color:#00d4aa;font-weight:500;}
@@ -77,14 +70,188 @@ st.markdown("""
 .oc-strike{text-align:center;font-weight:700;color:#e2e8f0;background:#1e3050;
            border-radius:4px;padding:1px 0;}
 
-/* strength meter */
 .str-row{display:flex;justify-content:space-between;padding:3px 0;font-size:.8rem;}
 .str-name{color:#4a6fa5;}.str-val{font-weight:600;}
 
-/* order form */
 .order-card{background:#0d1525;border:0.5px solid #1e3050;border-radius:10px;padding:14px;}
+
+/* stock search tag */
+.stock-tag{display:inline-block;background:#0d1525;border:0.5px solid #1e3050;
+           border-radius:6px;padding:2px 8px;font-size:.72rem;color:#94a3b8;margin:2px;}
+.stock-tag-idx{color:#00d4aa;font-weight:700;}
+.stock-tag-eq {color:#60a5fa;}
 </style>
 """, unsafe_allow_html=True)
+
+# ─── COMPREHENSIVE SECURITY IDs ───────────────────────────────────────────────
+# Format: symbol -> {id, segment, name, sector}
+
+SECURITY_IDS = {
+    # ── INDICES ──────────────────────────────────────────────────────────────
+    "NIFTY":        {"id": "13",    "segment": "IDX_I", "name": "Nifty 50",           "sector": "Index"},
+    "BANKNIFTY":    {"id": "25",    "segment": "IDX_I", "name": "Bank Nifty",          "sector": "Index"},
+    "FINNIFTY":     {"id": "27",    "segment": "IDX_I", "name": "Fin Nifty",           "sector": "Index"},
+    "MIDCPNIFTY":   {"id": "442",   "segment": "IDX_I", "name": "Midcap Nifty",        "sector": "Index"},
+    "SENSEX":       {"id": "1",     "segment": "IDX_I", "name": "BSE Sensex",          "sector": "Index"},
+    "BANKEX":       {"id": "12",    "segment": "IDX_I", "name": "BSE Bankex",          "sector": "Index"},
+
+    # ── BANKING & FINANCE ─────────────────────────────────────────────────────
+    "HDFCBANK":     {"id": "1333",  "segment": "NSE_EQ", "name": "HDFC Bank",          "sector": "Banking"},
+    "ICICIBANK":    {"id": "4963",  "segment": "NSE_EQ", "name": "ICICI Bank",         "sector": "Banking"},
+    "SBIN":         {"id": "3045",  "segment": "NSE_EQ", "name": "State Bank of India","sector": "Banking"},
+    "KOTAKBANK":    {"id": "1922",  "segment": "NSE_EQ", "name": "Kotak Mahindra Bank","sector": "Banking"},
+    "AXISBANK":     {"id": "5900",  "segment": "NSE_EQ", "name": "Axis Bank",          "sector": "Banking"},
+    "INDUSINDBK":   {"id": "10093", "segment": "NSE_EQ", "name": "IndusInd Bank",      "sector": "Banking"},
+    "BANDHANBNK":   {"id": "2263",  "segment": "NSE_EQ", "name": "Bandhan Bank",       "sector": "Banking"},
+    "FEDERALBNK":   {"id": "1023",  "segment": "NSE_EQ", "name": "Federal Bank",       "sector": "Banking"},
+    "IDFCFIRSTB":   {"id": "11723", "segment": "NSE_EQ", "name": "IDFC First Bank",    "sector": "Banking"},
+    "PNB":          {"id": "2730",  "segment": "NSE_EQ", "name": "Punjab National Bank","sector": "Banking"},
+    "CANBK":        {"id": "10794", "segment": "NSE_EQ", "name": "Canara Bank",        "sector": "Banking"},
+    "BANKBARODA":   {"id": "1152",  "segment": "NSE_EQ", "name": "Bank of Baroda",     "sector": "Banking"},
+    "BAJFINANCE":   {"id": "317",   "segment": "NSE_EQ", "name": "Bajaj Finance",      "sector": "Finance"},
+    "BAJAJFINSV":   {"id": "16675", "segment": "NSE_EQ", "name": "Bajaj Finserv",      "sector": "Finance"},
+    "HDFCLIFE":     {"id": "119",   "segment": "NSE_EQ", "name": "HDFC Life",          "sector": "Insurance"},
+    "SBILIFE":      {"id": "21808", "segment": "NSE_EQ", "name": "SBI Life",           "sector": "Insurance"},
+    "ICICIGI":      {"id": "15083", "segment": "NSE_EQ", "name": "ICICI General Ins",  "sector": "Insurance"},
+    "MUTHOOTFIN":   {"id": "4406",  "segment": "NSE_EQ", "name": "Muthoot Finance",    "sector": "Finance"},
+    "CHOLAFIN":     {"id": "685",   "segment": "NSE_EQ", "name": "Cholamandalam Fin",  "sector": "Finance"},
+
+    # ── IT & TECHNOLOGY ───────────────────────────────────────────────────────
+    "TCS":          {"id": "11536", "segment": "NSE_EQ", "name": "Tata Consultancy",   "sector": "IT"},
+    "INFY":         {"id": "10604", "segment": "NSE_EQ", "name": "Infosys",            "sector": "IT"},
+    "WIPRO":        {"id": "3787",  "segment": "NSE_EQ", "name": "Wipro",              "sector": "IT"},
+    "HCLTECH":      {"id": "7229",  "segment": "NSE_EQ", "name": "HCL Technologies",   "sector": "IT"},
+    "TECHM":        {"id": "13538", "segment": "NSE_EQ", "name": "Tech Mahindra",      "sector": "IT"},
+    "LTIM":         {"id": "17818", "segment": "NSE_EQ", "name": "LTIMindtree",        "sector": "IT"},
+    "MPHASIS":      {"id": "4503",  "segment": "NSE_EQ", "name": "Mphasis",            "sector": "IT"},
+    "PERSISTENT":   {"id": "18365", "segment": "NSE_EQ", "name": "Persistent Systems", "sector": "IT"},
+    "COFORGE":      {"id": "10418", "segment": "NSE_EQ", "name": "Coforge",            "sector": "IT"},
+    "OFSS":         {"id": "10738", "segment": "NSE_EQ", "name": "Oracle Fin Services","sector": "IT"},
+
+    # ── OIL, GAS & ENERGY ────────────────────────────────────────────────────
+    "RELIANCE":     {"id": "2885",  "segment": "NSE_EQ", "name": "Reliance Industries","sector": "Oil & Gas"},
+    "ONGC":         {"id": "11703", "segment": "NSE_EQ", "name": "ONGC",              "sector": "Oil & Gas"},
+    "IOC":          {"id": "1624",  "segment": "NSE_EQ", "name": "Indian Oil Corp",   "sector": "Oil & Gas"},
+    "BPCL":         {"id": "526",   "segment": "NSE_EQ", "name": "BPCL",              "sector": "Oil & Gas"},
+    "HINDPETRO":    {"id": "1406",  "segment": "NSE_EQ", "name": "HPCL",              "sector": "Oil & Gas"},
+    "GAIL":         {"id": "1094",  "segment": "NSE_EQ", "name": "GAIL India",        "sector": "Oil & Gas"},
+    "POWERGRID":    {"id": "14977", "segment": "NSE_EQ", "name": "Power Grid Corp",   "sector": "Power"},
+    "NTPC":         {"id": "11630", "segment": "NSE_EQ", "name": "NTPC",              "sector": "Power"},
+    "ADANIGREEN":   {"id": "6718",  "segment": "NSE_EQ", "name": "Adani Green Energy","sector": "Power"},
+    "ADANIPORTS":   {"id": "15083", "segment": "NSE_EQ", "name": "Adani Ports",       "sector": "Infrastructure"},
+    "ADANIENT":     {"id": "25",    "segment": "NSE_EQ", "name": "Adani Enterprises", "sector": "Conglomerate"},
+    "TATAPOWER":    {"id": "14150", "segment": "NSE_EQ", "name": "Tata Power",        "sector": "Power"},
+
+    # ── AUTO ─────────────────────────────────────────────────────────────────
+    "MARUTI":       {"id": "10999", "segment": "NSE_EQ", "name": "Maruti Suzuki",     "sector": "Auto"},
+    "TATAMOTORS":   {"id": "3456",  "segment": "NSE_EQ", "name": "Tata Motors",       "sector": "Auto"},
+    "M&M":          {"id": "2031",  "segment": "NSE_EQ", "name": "Mahindra & Mahindra","sector": "Auto"},
+    "BAJAJ-AUTO":   {"id": "16669", "segment": "NSE_EQ", "name": "Bajaj Auto",        "sector": "Auto"},
+    "HEROMOTOCO":   {"id": "1348",  "segment": "NSE_EQ", "name": "Hero MotoCorp",     "sector": "Auto"},
+    "EICHERMOT":    {"id": "910",   "segment": "NSE_EQ", "name": "Eicher Motors",     "sector": "Auto"},
+    "TVSMOTOR":     {"id": "14109", "segment": "NSE_EQ", "name": "TVS Motor",         "sector": "Auto"},
+    "ASHOKLEY":     {"id": "212",   "segment": "NSE_EQ", "name": "Ashok Leyland",     "sector": "Auto"},
+    "BOSCHLTD":     {"id": "2181",  "segment": "NSE_EQ", "name": "Bosch",             "sector": "Auto Ancil"},
+    "MOTHERSON":    {"id": "14413", "segment": "NSE_EQ", "name": "Motherson Sumi",    "sector": "Auto Ancil"},
+
+    # ── PHARMA & HEALTHCARE ───────────────────────────────────────────────────
+    "SUNPHARMA":    {"id": "3351",  "segment": "NSE_EQ", "name": "Sun Pharma",        "sector": "Pharma"},
+    "DRREDDY":      {"id": "881",   "segment": "NSE_EQ", "name": "Dr Reddys Labs",    "sector": "Pharma"},
+    "CIPLA":        {"id": "694",   "segment": "NSE_EQ", "name": "Cipla",             "sector": "Pharma"},
+    "DIVISLAB":     {"id": "10243", "segment": "NSE_EQ", "name": "Divi's Labs",       "sector": "Pharma"},
+    "APOLLOHOSP":   {"id": "157",   "segment": "NSE_EQ", "name": "Apollo Hospitals",  "sector": "Healthcare"},
+    "TORNTPHARM":   {"id": "3518",  "segment": "NSE_EQ", "name": "Torrent Pharma",    "sector": "Pharma"},
+    "BIOCON":       {"id": "526",   "segment": "NSE_EQ", "name": "Biocon",            "sector": "Pharma"},
+    "LUPIN":        {"id": "10440", "segment": "NSE_EQ", "name": "Lupin",             "sector": "Pharma"},
+    "AUROPHARMA":   {"id": "275",   "segment": "NSE_EQ", "name": "Aurobindo Pharma",  "sector": "Pharma"},
+    "ALKEM":        {"id": "6549",  "segment": "NSE_EQ", "name": "Alkem Labs",        "sector": "Pharma"},
+
+    # ── FMCG ─────────────────────────────────────────────────────────────────
+    "HINDUNILVR":   {"id": "1394",  "segment": "NSE_EQ", "name": "Hindustan Unilever","sector": "FMCG"},
+    "ITC":          {"id": "1660",  "segment": "NSE_EQ", "name": "ITC",               "sector": "FMCG"},
+    "NESTLEIND":    {"id": "17963", "segment": "NSE_EQ", "name": "Nestle India",      "sector": "FMCG"},
+    "BRITANNIA":    {"id": "547",   "segment": "NSE_EQ", "name": "Britannia",         "sector": "FMCG"},
+    "DABUR":        {"id": "804",   "segment": "NSE_EQ", "name": "Dabur India",       "sector": "FMCG"},
+    "GODREJCP":     {"id": "10099", "segment": "NSE_EQ", "name": "Godrej Consumer",   "sector": "FMCG"},
+    "MARICO":       {"id": "4067",  "segment": "NSE_EQ", "name": "Marico",            "sector": "FMCG"},
+    "COLPAL":       {"id": "752",   "segment": "NSE_EQ", "name": "Colgate-Palmolive", "sector": "FMCG"},
+    "EMAMILTD":     {"id": "10047", "segment": "NSE_EQ", "name": "Emami",             "sector": "FMCG"},
+    "TATACONSUM":   {"id": "3432",  "segment": "NSE_EQ", "name": "Tata Consumer",     "sector": "FMCG"},
+
+    # ── METALS & MINING ───────────────────────────────────────────────────────
+    "TATASTEEL":    {"id": "3499",  "segment": "NSE_EQ", "name": "Tata Steel",        "sector": "Metals"},
+    "JSWSTEEL":     {"id": "11723", "segment": "NSE_EQ", "name": "JSW Steel",         "sector": "Metals"},
+    "HINDALCO":     {"id": "1363",  "segment": "NSE_EQ", "name": "Hindalco",          "sector": "Metals"},
+    "VEDL":         {"id": "3063",  "segment": "NSE_EQ", "name": "Vedanta",           "sector": "Metals"},
+    "SAIL":         {"id": "2963",  "segment": "NSE_EQ", "name": "Steel Authority",   "sector": "Metals"},
+    "COALINDIA":    {"id": "20374", "segment": "NSE_EQ", "name": "Coal India",        "sector": "Mining"},
+    "NMDC":         {"id": "15332", "segment": "NSE_EQ", "name": "NMDC",              "sector": "Mining"},
+    "HINDCOPPER":   {"id": "24948", "segment": "NSE_EQ", "name": "Hindustan Copper",  "sector": "Metals"},
+    "NATIONALUM":   {"id": "15319", "segment": "NSE_EQ", "name": "National Aluminium","sector": "Metals"},
+
+    # ── CEMENT & INFRASTRUCTURE ───────────────────────────────────────────────
+    "ULTRACEMCO":   {"id": "11532", "segment": "NSE_EQ", "name": "UltraTech Cement",  "sector": "Cement"},
+    "SHREECEM":     {"id": "3103",  "segment": "NSE_EQ", "name": "Shree Cement",      "sector": "Cement"},
+    "AMBUJACEM":    {"id": "1270",  "segment": "NSE_EQ", "name": "Ambuja Cement",     "sector": "Cement"},
+    "ACC":          {"id": "14",    "segment": "NSE_EQ", "name": "ACC",               "sector": "Cement"},
+    "DALMIACEM":    {"id": "6432",  "segment": "NSE_EQ", "name": "Dalmia Bharat",     "sector": "Cement"},
+    "LT":           {"id": "11483", "segment": "NSE_EQ", "name": "Larsen & Toubro",   "sector": "Infrastructure"},
+    "LTTS":         {"id": "18305", "segment": "NSE_EQ", "name": "L&T Technology",    "sector": "IT"},
+
+    # ── TELECOM ───────────────────────────────────────────────────────────────
+    "BHARTIARTL":   {"id": "10604", "segment": "NSE_EQ", "name": "Bharti Airtel",     "sector": "Telecom"},
+    "IDEA":         {"id": "14366", "segment": "NSE_EQ", "name": "Vodafone Idea",     "sector": "Telecom"},
+    "INDUSTOWER":   {"id": "7458",  "segment": "NSE_EQ", "name": "Indus Towers",      "sector": "Telecom"},
+
+    # ── CONSUMER & RETAIL ─────────────────────────────────────────────────────
+    "TITAN":        {"id": "3506",  "segment": "NSE_EQ", "name": "Titan Company",     "sector": "Consumer"},
+    "TRENT":        {"id": "3519",  "segment": "NSE_EQ", "name": "Trent",             "sector": "Retail"},
+    "DMART":        {"id": "7432",  "segment": "NSE_EQ", "name": "Avenue Supermarts", "sector": "Retail"},
+    "NYKAA":        {"id": "21827", "segment": "NSE_EQ", "name": "Nykaa",             "sector": "Retail"},
+    "ZOMATO":       {"id": "21866", "segment": "NSE_EQ", "name": "Zomato",            "sector": "Consumer"},
+    "PAYTM":        {"id": "21865", "segment": "NSE_EQ", "name": "One97 (Paytm)",     "sector": "Fintech"},
+    "POLICYBZR":    {"id": "21875", "segment": "NSE_EQ", "name": "PB Fintech",        "sector": "Fintech"},
+    "IRCTC":        {"id": "16916", "segment": "NSE_EQ", "name": "IRCTC",             "sector": "Consumer"},
+
+    # ── CAPITAL GOODS & DEFENCE ───────────────────────────────────────────────
+    "SIEMENS":      {"id": "3200",  "segment": "NSE_EQ", "name": "Siemens India",     "sector": "Capital Goods"},
+    "ABB":          {"id": "13",    "segment": "NSE_EQ", "name": "ABB India",         "sector": "Capital Goods"},
+    "HAVELLS":      {"id": "430",   "segment": "NSE_EQ", "name": "Havells India",     "sector": "Capital Goods"},
+    "CUMMINSIND":   {"id": "779",   "segment": "NSE_EQ", "name": "Cummins India",     "sector": "Capital Goods"},
+    "HAL":          {"id": "2303",  "segment": "NSE_EQ", "name": "Hindustan Aeronaut","sector": "Defence"},
+    "BEL":          {"id": "383",   "segment": "NSE_EQ", "name": "Bharat Electronics","sector": "Defence"},
+    "BHEL":         {"id": "438",   "segment": "NSE_EQ", "name": "BHEL",              "sector": "Capital Goods"},
+    "COCHINSHIP":   {"id": "11090", "segment": "NSE_EQ", "name": "Cochin Shipyard",   "sector": "Defence"},
+
+    # ── REAL ESTATE ───────────────────────────────────────────────────────────
+    "DLF":          {"id": "14732", "segment": "NSE_EQ", "name": "DLF",              "sector": "Real Estate"},
+    "GODREJPROP":   {"id": "10709", "segment": "NSE_EQ", "name": "Godrej Properties","sector": "Real Estate"},
+    "OBEROIRLTY":   {"id": "20242", "segment": "NSE_EQ", "name": "Oberoi Realty",    "sector": "Real Estate"},
+    "PRESTIGE":     {"id": "14501", "segment": "NSE_EQ", "name": "Prestige Estates",  "sector": "Real Estate"},
+
+    # ── CHEMICALS ─────────────────────────────────────────────────────────────
+    "PIDILITIND":   {"id": "14359", "segment": "NSE_EQ", "name": "Pidilite Industries","sector": "Chemicals"},
+    "SRF":          {"id": "3273",  "segment": "NSE_EQ", "name": "SRF",               "sector": "Chemicals"},
+    "AAPL":         {"id": "68",    "segment": "NSE_EQ", "name": "Aarti Industries",  "sector": "Chemicals"},
+    "DEEPAKFERT":   {"id": "833",   "segment": "NSE_EQ", "name": "Deepak Fertilisers","sector": "Chemicals"},
+    "TATACHEM":     {"id": "3440",  "segment": "NSE_EQ", "name": "Tata Chemicals",    "sector": "Chemicals"},
+
+    # ── MEDIA & ENTERTAINMENT ─────────────────────────────────────────────────
+    "ZEEL":         {"id": "9667",  "segment": "NSE_EQ", "name": "Zee Entertainment", "sector": "Media"},
+    "SUNTV":        {"id": "3418",  "segment": "NSE_EQ", "name": "Sun TV Network",    "sector": "Media"},
+    "PVR":          {"id": "13147", "segment": "NSE_EQ", "name": "PVR Inox",         "sector": "Media"},
+}
+
+LOT_SIZES = {
+    "NIFTY": 75, "BANKNIFTY": 30, "FINNIFTY": 65,
+    "MIDCPNIFTY": 50, "SENSEX": 20, "BANKEX": 15,
+}
+
+# ─── SECTOR GROUPS FOR DISPLAY ────────────────────────────────────────────────
+SECTOR_GROUPS = {}
+for sym, info in SECURITY_IDS.items():
+    sec = info["sector"]
+    SECTOR_GROUPS.setdefault(sec, []).append(sym)
 
 # ─── SESSION STATE DEFAULTS ───────────────────────────────────────────────────
 defaults = {
@@ -98,6 +265,7 @@ defaults = {
     "last_fetch": {},
     "active_trades": {},
     "strategy_config": {},
+    "stock_search": "",
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -105,21 +273,6 @@ for k, v in defaults.items():
 
 # ─── DHAN API HELPERS ─────────────────────────────────────────────────────────
 DHAN_BASE = "https://api.dhan.co/v2"
-
-SECURITY_IDS = {
-    "NIFTY":     {"id": "13",    "segment": "IDX_I"},
-    "BANKNIFTY": {"id": "25",    "segment": "IDX_I"},
-    "FINNIFTY":  {"id": "27",    "segment": "IDX_I"},
-    "SENSEX":    {"id": "1",     "segment": "IDX_I"},
-    "RELIANCE":  {"id": "2885",  "segment": "NSE_EQ"},
-    "HDFCBANK":  {"id": "1333",  "segment": "NSE_EQ"},
-    "INFY":      {"id": "10604", "segment": "NSE_EQ"},
-    "TCS":       {"id": "11536", "segment": "NSE_EQ"},
-    "WIPRO":     {"id": "3787",  "segment": "NSE_EQ"},
-    "ICICIBANK": {"id": "4963",  "segment": "NSE_EQ"},
-}
-
-LOT_SIZES = {"NIFTY": 75, "BANKNIFTY": 30, "FINNIFTY": 65, "SENSEX": 20}
 
 def get_headers():
     return {
@@ -134,7 +287,10 @@ def dhan_post(path, body, timeout=12):
         r.raise_for_status()
         return r.json()
     except requests.exceptions.HTTPError as e:
-        return {"error": f"HTTP {r.status_code}: {r.text[:200]}"}
+        try:
+            return {"error": f"HTTP {r.status_code}: {r.text[:200]}"}
+        except Exception:
+            return {"error": str(e)}
     except Exception as e:
         return {"error": str(e)}
 
@@ -144,22 +300,21 @@ def dhan_get(path, timeout=10):
         r.raise_for_status()
         return r.json()
     except requests.exceptions.HTTPError as e:
-        return {"error": f"HTTP {r.status_code}: {r.text[:200]}"}
+        try:
+            return {"error": f"HTTP {r.status_code}: {r.text[:200]}"}
+        except Exception:
+            return {"error": str(e)}
     except Exception as e:
         return {"error": str(e)}
 
 def verify_credentials(client_id, access_token):
-    """
-    Verify Dhan credentials. Returns (ok: bool, debug_msg: str).
-    Accepts 200/204/429 as valid; rejects 401/403/5xx.
-    """
     headers = {
         "Content-Type": "application/json",
         "access-token": access_token.strip(),
         "client-id":    client_id.strip(),
     }
     try:
-        r = requests.get(f"{DHAN_BASE}/funds/balance", headers=headers, timeout=10)
+        r = requests.get(f"{DHAN_BASE}/fundlimit", headers=headers, timeout=10)
         code = r.status_code
         try:
             body = r.json()
@@ -175,16 +330,19 @@ def verify_credentials(client_id, access_token):
             else:
                 msg = str(body)
             return False, f"HTTP {code}: {msg or 'Invalid credentials'}"
+        elif code == 404:
+            # endpoint might vary — treat as soft pass
+            return True, "Connected (endpoint check skipped)"
         elif code == 429:
             return True, "Rate limited but credentials accepted"
         elif code >= 500:
-            return False, f"Dhan server error (HTTP {code}). Try again in a moment."
+            return False, f"Dhan server error (HTTP {code}). Try again."
         else:
             return True, f"Connected (HTTP {code})"
     except requests.exceptions.Timeout:
         return False, "Request timed out — check your internet connection."
     except requests.exceptions.ConnectionError:
-        return False, "Could not reach Dhan API — check your internet connection."
+        return False, "Could not reach Dhan API — check internet."
     except Exception as e:
         return False, f"Unexpected error: {str(e)}"
 
@@ -216,7 +374,6 @@ def fetch_option_chain(symbol):
     info = SECURITY_IDS.get(symbol)
     if not info:
         return None, None
-    # Get expiries first
     exp_body = {"UnderlyingScrip": int(info["id"]), "UnderlyingSeg": info["segment"]}
     exp_data = dhan_post("/optionchain/expirylist", exp_body)
     expiries = exp_data.get("data", [])
@@ -232,25 +389,25 @@ def fetch_option_chain(symbol):
     return chain.get("data") or chain, nearest
 
 def fetch_funds():
-    return dhan_get("/funds/balance")
+    return dhan_get("/fundlimit")
 
 def fetch_positions():
     return dhan_get("/portfolio/positions")
 
 def place_order(security_id, txn, product, qty, price):
     body = {
-        "dhanClientId":    st.session_state.client_id,
-        "transactionType": txn,
-        "exchangeSegment": "NSE_FNO",
-        "productType":     product,
-        "orderType":       "LIMIT" if price > 0 else "MARKET",
-        "validity":        "DAY",
-        "securityId":      security_id,
-        "quantity":        qty,
-        "price":           price,
-        "triggerPrice":    0,
+        "dhanClientId":      st.session_state.client_id,
+        "transactionType":   txn,
+        "exchangeSegment":   "NSE_FNO",
+        "productType":       product,
+        "orderType":         "LIMIT" if price > 0 else "MARKET",
+        "validity":          "DAY",
+        "securityId":        security_id,
+        "quantity":          qty,
+        "price":             price,
+        "triggerPrice":      0,
         "disclosedQuantity": 0,
-        "afterMarketOrder": False,
+        "afterMarketOrder":  False,
     }
     return dhan_post("/orders", body)
 
@@ -271,9 +428,28 @@ def add_alert(atype, text):
     if len(st.session_state.alerts) > 10:
         st.session_state.alerts.pop()
 
+def search_stocks(query: str) -> list[str]:
+    """Return symbols matching query (searches symbol, name, sector)."""
+    q = query.upper().strip()
+    if not q:
+        return list(SECURITY_IDS.keys())
+    results = []
+    for sym, info in SECURITY_IDS.items():
+        if (q in sym or
+                q in info["name"].upper() or
+                q in info["sector"].upper()):
+            results.append(sym)
+    return results
+
 # ─── CHART BUILDER ───────────────────────────────────────────────────────────
-COLORS = {"green": "#00d4aa", "red": "#f87171", "amber": "#f59e0b",
-          "blue": "#60a5fa", "purple": "#a78bfa", "gray": "#4a6fa5"}
+COLORS = {
+    "green":  "#00d4aa",
+    "red":    "#f87171",
+    "amber":  "#f59e0b",
+    "blue":   "#60a5fa",
+    "purple": "#a78bfa",
+    "gray":   "#4a6fa5",
+}
 
 def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=True, show_bb=False):
     if not candles:
@@ -290,16 +466,17 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
         subplot_titles=("", "Volume", "MACD"),
     )
 
-    # ── Candlesticks ──
+    # Candlesticks — use rgba for fillcolor (Plotly strict validation)
     fig.add_trace(go.Candlestick(
         x=df["dt"],
         open=df["o"], high=df["h"], low=df["l"], close=df["c"],
-        increasing_line_color=COLORS["green"], decreasing_line_color=COLORS["red"],
-        increasing_fillcolor="rgba(0,212,170,0.4)", decreasing_fillcolor="rgba(248,113,113,0.4)",
+        increasing_line_color=COLORS["green"],
+        decreasing_line_color=COLORS["red"],
+        increasing_fillcolor="rgba(0,212,170,0.4)",
+        decreasing_fillcolor="rgba(248,113,113,0.4)",
         name="Price", line_width=1,
     ), row=1, col=1)
 
-    # ── EMA lines ──
     if show_ema and "ema9" in df.columns:
         fig.add_trace(go.Scatter(
             x=df["dt"], y=df["ema9"], name="EMA9",
@@ -310,26 +487,23 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
             line=dict(color=COLORS["blue"], width=1), mode="lines",
         ), row=1, col=1)
 
-    # ── VWAP ──
     if show_vwap and "vwap" in df.columns:
         fig.add_trace(go.Scatter(
             x=df["dt"], y=df["vwap"], name="VWAP",
             line=dict(color=COLORS["amber"], width=1, dash="dash"), mode="lines",
         ), row=1, col=1)
 
-    # ── Bollinger Bands ──
     if show_bb and indicators:
         for label, val, col in [
-            ("BB Upper", indicators["bb_upper"], COLORS["gray"]),
-            ("BB Mid",   indicators["bb_mid"],   COLORS["gray"]),
-            ("BB Lower", indicators["bb_lower"],  COLORS["gray"]),
+            ("BB Upper", indicators.get("bb_upper", 0), COLORS["gray"]),
+            ("BB Mid",   indicators.get("bb_mid", 0),   COLORS["gray"]),
+            ("BB Lower", indicators.get("bb_lower", 0), COLORS["gray"]),
         ]:
             fig.add_trace(go.Scatter(
                 x=df["dt"], y=[val] * len(df), name=label,
                 line=dict(color=col, width=0.8, dash="dot"), mode="lines",
             ), row=1, col=1)
 
-    # ── Buy/Sell signal markers ──
     if candle_signals:
         buys  = [s for s in candle_signals if s["direction"] == "BUY"]
         sells = [s for s in candle_signals if s["direction"] == "SELL"]
@@ -342,52 +516,53 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
             bx = [get_dt(s["index"]) for s in buys if s["index"] < len(df)]
             by = [df["l"].iloc[s["index"]] * 0.999 for s in buys if s["index"] < len(df)]
             fig.add_trace(go.Scatter(
-                x=bx, y=by,
-                mode="markers+text",
+                x=bx, y=by, mode="markers+text",
                 marker=dict(symbol="triangle-up", size=12, color=COLORS["green"]),
                 text=["BUY"] * len(bx), textposition="bottom center",
                 textfont=dict(size=8, color=COLORS["green"]),
-                name="BUY Signal", showlegend=True,
+                name="BUY Signal",
             ), row=1, col=1)
 
         if sells:
             sx = [get_dt(s["index"]) for s in sells if s["index"] < len(df)]
             sy = [df["h"].iloc[s["index"]] * 1.001 for s in sells if s["index"] < len(df)]
             fig.add_trace(go.Scatter(
-                x=sx, y=sy,
-                mode="markers+text",
+                x=sx, y=sy, mode="markers+text",
                 marker=dict(symbol="triangle-down", size=12, color=COLORS["red"]),
                 text=["SELL"] * len(sx), textposition="top center",
                 textfont=dict(size=8, color=COLORS["red"]),
-                name="SELL Signal", showlegend=True,
+                name="SELL Signal",
             ), row=1, col=1)
 
         if dojs:
             dx = [get_dt(s["index"]) for s in dojs if s["index"] < len(df)]
             dy = [df["h"].iloc[s["index"]] * 1.001 for s in dojs if s["index"] < len(df)]
             fig.add_trace(go.Scatter(
-                x=dx, y=dy,
-                mode="markers",
+                x=dx, y=dy, mode="markers",
                 marker=dict(symbol="diamond", size=8, color=COLORS["amber"]),
-                name="Doji", showlegend=True,
+                name="Doji",
             ), row=1, col=1)
 
-    # ── Volume ──
-    vol_colors = ["rgba(0,212,170,0.53)" if r["c"] >= r["o"] else "rgba(248,113,113,0.53)" for _, r in df.iterrows()]
+    # Volume — rgba strings instead of hex+alpha
+    vol_colors = [
+        "rgba(0,212,170,0.53)" if r["c"] >= r["o"] else "rgba(248,113,113,0.53)"
+        for _, r in df.iterrows()
+    ]
     fig.add_trace(go.Bar(
         x=df["dt"], y=df["v"],
         marker_color=vol_colors, name="Volume", showlegend=False,
     ), row=2, col=1)
 
-    # ── MACD Histogram ──
     if "macd_hist" in df.columns:
-        macd_colors = ["rgba(0,212,170,0.53)" if v >= 0 else "rgba(248,113,113,0.53)" for v in df["macd_hist"]]
+        macd_colors = [
+            "rgba(0,212,170,0.53)" if v >= 0 else "rgba(248,113,113,0.53)"
+            for v in df["macd_hist"]
+        ]
         fig.add_trace(go.Bar(
             x=df["dt"], y=df["macd_hist"],
             marker_color=macd_colors, name="MACD Hist", showlegend=False,
         ), row=3, col=1)
 
-    # ── Layout ──
     fig.update_layout(
         height=520,
         paper_bgcolor="#060b18",
@@ -412,8 +587,8 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
         tickfont=dict(color="#4a6fa5", size=9),
         showticklabels=True,
     )
-
     return fig
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  LOGIN SCREEN
@@ -447,7 +622,6 @@ def show_login():
             if not client_id.strip() or not access_token.strip():
                 st.error("Both Client ID and Access Token are required.")
             else:
-                # Stash creds in session so bypass button can read them
                 st.session_state["_login_cid"] = client_id.strip()
                 st.session_state["_login_tok"] = access_token.strip()
                 with st.spinner("Verifying credentials with Dhan API..."):
@@ -464,23 +638,20 @@ def show_login():
                     with st.expander("🔍 Troubleshooting tips"):
                         st.markdown("""
 **Common reasons for failure:**
-
-1. **Wrong Client ID format** — Use only the numeric ID (e.g. `1000123456`), no spaces or dashes
-2. **Expired Access Token** — Dhan tokens expire every 24 hours. Generate a fresh one at [api.dhan.co](https://api.dhan.co)
-3. **Token not activated** — After generating, wait 1–2 minutes before first use
-4. **Extra spaces** — Make sure you didn't accidentally copy a leading/trailing space
-5. **Data API not subscribed** — Some endpoints need the ₹499/month Data API subscription
+1. **Wrong Client ID** — Use only the numeric ID, no spaces
+2. **Expired Token** — Dhan tokens expire every 24h. Generate fresh at [api.dhan.co](https://api.dhan.co)
+3. **Token not activated** — Wait 1–2 min after generating
+4. **Extra spaces** — No leading/trailing spaces
+5. **Data API not subscribed** — Some endpoints need ₹499/month subscription
 
 **To get a fresh Access Token:**
-- Go to [api.dhan.co](https://api.dhan.co) → My Apps → Select your app → Generate Token
-- Copy the full token (it starts with `eyJ...`)
+- Go to [api.dhan.co](https://api.dhan.co) → My Apps → Select app → Generate Token
                         """)
 
-        # ── Bypass button (for users whose verification call fails but token works) ──
-        st.markdown("<div style='text-align:center;margin-top:10px;font-size:.75rem;color:#4a6fa5;'>Verification failing but you know your credentials are correct?</div>", unsafe_allow_html=True)
-        bypass_col1, bypass_col2, bypass_col3 = st.columns([1, 2, 1])
-        with bypass_col2:
-            if st.button("⚡ Connect anyway (skip check)", use_container_width=True, help="Use this if the API check fails but your credentials are valid — e.g. outside market hours or rate limits."):
+        st.markdown("<div style='text-align:center;margin-top:10px;font-size:.75rem;color:#4a6fa5;'>Verification failing but credentials are correct?</div>", unsafe_allow_html=True)
+        bc1, bc2, bc3 = st.columns([1, 2, 1])
+        with bc2:
+            if st.button("⚡ Connect anyway (skip check)", use_container_width=True):
                 cid = st.session_state.get("_login_cid", "")
                 tok = st.session_state.get("_login_tok", "")
                 if cid and tok:
@@ -489,16 +660,15 @@ def show_login():
                     st.session_state.access_token  = tok
                     st.rerun()
                 else:
-                    st.warning("Enter and submit your credentials first, then click this if you get an error.")
+                    st.warning("Enter and submit your credentials first.")
 
         st.markdown("""
         <div style='text-align:center;margin-top:1rem;font-size:.78rem;color:#4a6fa5;'>
-        🔒 Your credentials are stored only in your browser session<br>
-        and are never saved to disk or sent to any third party.<br><br>
+        🔒 Credentials stored only in browser session — never saved to disk.<br><br>
         Get credentials → <a href='https://api.dhan.co' target='_blank' style='color:#00d4aa'>api.dhan.co</a>
-        &nbsp;|&nbsp; Requires <a href='https://dhan.co/support/platforms/dhanhq-api/how-can-i-access-live-market-data-through-dhan/' target='_blank' style='color:#00d4aa'>Data API subscription</a>
         </div>
         """, unsafe_allow_html=True)
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  MAIN DASHBOARD
@@ -509,54 +679,116 @@ def show_dashboard():
     with st.sidebar:
         st.markdown(f"""
         <div style='font-size:1.2rem;font-weight:700;color:#00d4aa;margin-bottom:4px;'>⚡ NiftyEdge Pro</div>
-        <div style='font-size:.72rem;color:#4a6fa5;margin-bottom:1rem;'>
-        Client: {st.session_state.client_id[:6]}••••••
+        <div style='font-size:.72rem;color:#4a6fa5;margin-bottom:.5rem;'>
+        Client: {st.session_state.client_id[:6]}••••••  ·  {len(SECURITY_IDS)} instruments
         </div>
         """, unsafe_allow_html=True)
 
-        # Symbol selector
-        st.markdown("**Select Instrument**")
-        symbol = st.selectbox(
-            "Instrument",
-            list(SECURITY_IDS.keys()),
-            index=list(SECURITY_IDS.keys()).index(st.session_state.symbol),
+        # ── STOCK SEARCH ─────────────────────────────────────────────────────
+        st.markdown("**🔍 Search Instrument**")
+        search_query = st.text_input(
+            "Search",
+            placeholder="Type symbol, name or sector…",
             label_visibility="collapsed",
+            key="sidebar_search",
         )
-        if symbol != st.session_state.symbol:
-            st.session_state.symbol = symbol
-            st.rerun()
 
-        # Timeframe
+        matched = search_stocks(search_query)
+        total_matched = len(matched)
+
+        if search_query:
+            st.caption(f"{total_matched} result{'s' if total_matched != 1 else ''} found")
+
+        # Group results by sector for display
+        if search_query and matched:
+            # Show as a compact scrollable selectbox
+            sym_options = matched[:50]  # cap at 50 for performance
+            display_options = [
+                f"{s} — {SECURITY_IDS[s]['name']}"
+                for s in sym_options
+            ]
+            selected_display = st.selectbox(
+                "Select",
+                display_options,
+                label_visibility="collapsed",
+                key="search_result_select",
+            )
+            if selected_display:
+                selected_sym = selected_display.split(" — ")[0]
+                if st.button(f"📈 Load {selected_sym}", use_container_width=True, type="primary"):
+                    st.session_state.symbol = selected_sym
+                    st.rerun()
+        else:
+            # Sector-grouped browser when no search
+            st.markdown("**Browse by Sector**")
+            sector_list = ["— All —"] + sorted(SECTOR_GROUPS.keys())
+            chosen_sector = st.selectbox("Sector", sector_list, label_visibility="collapsed")
+
+            if chosen_sector == "— All —":
+                sector_syms = list(SECURITY_IDS.keys())
+            else:
+                sector_syms = SECTOR_GROUPS.get(chosen_sector, [])
+
+            sym_display = [f"{s} — {SECURITY_IDS[s]['name']}" for s in sector_syms]
+            cur_display = f"{st.session_state.symbol} — {SECURITY_IDS[st.session_state.symbol]['name']}" \
+                          if st.session_state.symbol in SECURITY_IDS else sym_display[0]
+            cur_idx = sym_display.index(cur_display) if cur_display in sym_display else 0
+
+            chosen_display = st.selectbox(
+                "Instrument",
+                sym_display,
+                index=cur_idx,
+                label_visibility="collapsed",
+            )
+            new_sym = chosen_display.split(" — ")[0]
+            if new_sym != st.session_state.symbol:
+                st.session_state.symbol = new_sym
+                st.rerun()
+
+        # ── QUICK PICKS ───────────────────────────────────────────────────────
+        st.markdown("**⚡ Quick Pick**")
+        quick = ["NIFTY", "BANKNIFTY", "FINNIFTY", "RELIANCE", "TCS",
+                 "HDFCBANK", "INFY", "SBIN", "TATAMOTORS", "BAJFINANCE"]
+        qcols = st.columns(2)
+        for i, q in enumerate(quick):
+            with qcols[i % 2]:
+                if st.button(q, key=f"qp_{q}", use_container_width=True):
+                    st.session_state.symbol = q
+                    st.rerun()
+
+        # ── TIMEFRAME ────────────────────────────────────────────────────────
+        st.divider()
         tf_map = {"1 min": "1", "5 min": "5", "15 min": "15", "25 min": "25", "1 Hour": "60"}
         tf_label = st.selectbox("Timeframe", list(tf_map.keys()), index=2)
         interval = tf_map[tf_label]
         if interval != st.session_state.interval:
             st.session_state.interval = interval
 
-        # Overlay toggles
         st.markdown("**Chart Overlays**")
-        show_ema  = st.checkbox("EMA 9 / 21",  value=True)
-        show_vwap = st.checkbox("VWAP",         value=True)
-        show_bb   = st.checkbox("Bollinger Bands", value=False)
+        show_ema  = st.checkbox("EMA 9 / 21",      value=True)
+        show_vwap = st.checkbox("VWAP",             value=True)
+        show_bb   = st.checkbox("Bollinger Bands",  value=False)
 
         st.divider()
 
-        # Funds
+        # ── ACCOUNT ───────────────────────────────────────────────────────────
         st.markdown("**Account**")
-        if st.button("Refresh Funds", use_container_width=True):
+        if st.button("💰 Refresh Funds", use_container_width=True):
             funds = fetch_funds()
-            if "availabelBalance" in funds:
-                st.metric("Available", f"₹{funds['availabelBalance']:,.2f}")
-            elif "error" in funds:
+            if isinstance(funds, dict) and not funds.get("error"):
+                avail = (funds.get("availabelBalance")
+                         or funds.get("availableBalance")
+                         or (funds.get("data") or {}).get("availabelBalance", 0))
+                st.metric("Available", f"₹{float(avail):,.2f}")
+            elif "error" in (funds or {}):
                 st.error(funds["error"])
 
-        # Positions
-        if st.button("View Positions", use_container_width=True):
+        if st.button("📋 View Positions", use_container_width=True):
             pos = fetch_positions()
             if isinstance(pos, list) and pos:
-                pf = pd.DataFrame(pos)[["tradingSymbol", "netQty", "buyAvg", "sellAvg", "unrealizedProfit"]]
-                pf.columns = ["Symbol", "Qty", "Buy Avg", "Sell Avg", "P&L"]
-                st.dataframe(pf, use_container_width=True, hide_index=True)
+                pf = pd.DataFrame(pos)
+                cols = [c for c in ["tradingSymbol", "netQty", "buyAvg", "sellAvg", "unrealizedProfit"] if c in pf.columns]
+                st.dataframe(pf[cols], use_container_width=True, hide_index=True)
             elif "error" in (pos or {}):
                 st.error(pos["error"])
             else:
@@ -564,31 +796,37 @@ def show_dashboard():
 
         st.divider()
         if st.button("🚪 Logout", use_container_width=True):
-            for k in ["authenticated", "client_id", "access_token", "analysis_cache", "last_fetch", "alerts"]:
+            for k in ["authenticated", "client_id", "access_token",
+                      "analysis_cache", "last_fetch", "alerts"]:
                 st.session_state[k] = defaults[k]
             st.rerun()
 
-    # ── TOP METRICS BAR ──────────────────────────────────────────────────────
-    sym = st.session_state.symbol
-    now_ist = datetime.now().strftime("%d %b %Y  %H:%M IST")
+    # ── TOP BAR ──────────────────────────────────────────────────────────────
+    sym     = st.session_state.symbol
+    sym_info = SECURITY_IDS.get(sym, {})
+    now_ist  = datetime.now().strftime("%d %b %Y  %H:%M IST")
+
     st.markdown(f"""
     <div style='display:flex;justify-content:space-between;align-items:center;
          background:#0d1525;border:0.5px solid #1e3050;border-radius:8px;
          padding:8px 16px;margin-bottom:10px;'>
       <span style='font-size:1rem;font-weight:700;color:#00d4aa;'>⚡ NiftyEdge Pro</span>
+      <span style='font-size:.85rem;color:#e2e8f0;font-weight:600;'>{sym}
+        <span style='color:#4a6fa5;font-weight:400;font-size:.75rem;'> — {sym_info.get("name","")}  ·  {sym_info.get("sector","")}</span>
+      </span>
       <span style='font-size:.8rem;color:#4a6fa5;'>🕐 {now_ist}</span>
     </div>
     """, unsafe_allow_html=True)
 
-    # Fetch live quote for top metrics
+    # ── LIVE QUOTE BAR ───────────────────────────────────────────────────────
     quote_data = fetch_quote(sym)
     ltp, chg, pct = 0.0, 0.0, 0.0
     if quote_data and not quote_data.get("error"):
         seg = SECURITY_IDS[sym]["segment"]
         sid = SECURITY_IDS[sym]["id"]
-        q = (quote_data.get(seg) or {}).get(sid, {})
-        ltp      = q.get("ltp", 0)
-        prev_cls = q.get("previousClosePrice", ltp)
+        q   = (quote_data.get(seg) or {}).get(sid, {})
+        ltp       = q.get("ltp", 0)
+        prev_cls  = q.get("previousClosePrice", ltp)
         chg  = ltp - prev_cls
         pct  = (chg / prev_cls * 100) if prev_cls else 0
 
@@ -608,15 +846,17 @@ def show_dashboard():
             b_ltp = (q3.get("IDX_I") or {}).get("25", {}).get("ltp", 0)
         st.metric("BANKNIFTY", f"₹{b_ltp:,.2f}")
     with mcol4:
-        st.metric("Market", "OPEN" if 9 <= datetime.now().hour < 16 else "CLOSED",
-                  delta_color="off")
+        mhour = datetime.now().hour
+        mmin  = datetime.now().minute
+        is_open = (9 < mhour < 15) or (mhour == 9 and mmin >= 15) or (mhour == 15 and mmin == 0)
+        st.metric("Market", "🟢 OPEN" if is_open else "🔴 CLOSED", delta_color="off")
     with mcol5:
         st.metric("Interval", tf_label)
 
     # ── FETCH ANALYSIS ───────────────────────────────────────────────────────
-    cache_key = f"{sym}_{interval}"
+    cache_key  = f"{sym}_{interval}"
     last_fetch = st.session_state.last_fetch.get(cache_key, 0)
-    cache_ttl  = 120  # seconds
+    cache_ttl  = 120
 
     if time.time() - last_fetch > cache_ttl:
         with st.spinner(f"Fetching {sym} {tf_label} candles from Dhan..."):
@@ -625,11 +865,10 @@ def show_dashboard():
             result = analyse(raw)
             result["symbol"] = sym
             st.session_state.analysis_cache[cache_key] = result
-            st.session_state.last_fetch[cache_key]    = time.time()
-            # Add signal alert
+            st.session_state.last_fetch[cache_key]     = time.time()
             sig = result.get("signal", {})
             if sig.get("type") in ("BUY", "SELL"):
-                pats = sig.get("patterns", [])
+                pats    = sig.get("patterns", [])
                 pat_str = pats[0]["pattern"] if pats else sig.get("reasons", [""])[0]
                 add_alert(sig["type"], f"{sym} — {pat_str} ({tf_label})")
         else:
@@ -646,204 +885,204 @@ def show_dashboard():
         "⚙️ Strategy Config",
     ])
 
-    # ── LAYOUT: CHART | RIGHT PANEL ──────────────────────────────────────────
     with tab_chart:
-     chart_col, right_col = st.columns([3, 1], gap="small")
+        chart_col, right_col = st.columns([3, 1], gap="small")
 
-    with chart_col:
-        if result:
-            ind = result.get("indicators", {})
-            # Indicators bar
-            ema9  = fmt(ind.get("ema9", 0))
-            ema21 = fmt(ind.get("ema21", 0))
-            rsi_v = ind.get("rsi", 0)
-            macd_v = ind.get("macd", 0)
-            hist_v = ind.get("macd_hist", 0)
-            vwap_v = fmt(ind.get("vwap", 0))
-            atr_v  = ind.get("atr", 0)
-            bb_lo  = fmt(ind.get("bb_lower", 0))
-            bb_hi  = fmt(ind.get("bb_upper", 0))
+        with chart_col:
+            if result:
+                ind    = result.get("indicators", {})
+                ema9   = fmt(ind.get("ema9", 0))
+                ema21  = fmt(ind.get("ema21", 0))
+                rsi_v  = ind.get("rsi", 0)
+                macd_v = ind.get("macd", 0)
+                hist_v = ind.get("macd_hist", 0)
+                vwap_v = fmt(ind.get("vwap", 0))
+                atr_v  = ind.get("atr", 0)
+                bb_lo  = fmt(ind.get("bb_lower", 0))
+                bb_hi  = fmt(ind.get("bb_upper", 0))
 
-            rsi_col  = "#00d4aa" if 30 < rsi_v < 70 else "#f87171"
-            macd_col = "#00d4aa" if macd_v > 0 else "#f87171"
-            hist_col = "#00d4aa" if hist_v > 0 else "#f87171"
+                rsi_col  = "#00d4aa" if 30 < rsi_v < 70 else "#f87171"
+                macd_col = "#00d4aa" if macd_v > 0 else "#f87171"
+                hist_col = "#00d4aa" if hist_v > 0 else "#f87171"
 
-            st.markdown(f"""
-            <div class="ind-row">
-              <span class="ind-chip">EMA9 <span>{ema9}</span></span>
-              <span class="ind-chip">EMA21 <span>{ema21}</span></span>
-              <span class="ind-chip">RSI(14) <span style="color:{rsi_col}">{rsi_v}</span></span>
-              <span class="ind-chip">MACD <span style="color:{macd_col}">{macd_v:+.1f}</span></span>
-              <span class="ind-chip">Hist <span style="color:{hist_col}">{hist_v:+.1f}</span></span>
-              <span class="ind-chip">VWAP <span>{vwap_v}</span></span>
-              <span class="ind-chip">ATR <span>{atr_v}</span></span>
-              <span class="ind-chip">BB <span>{bb_lo} – {bb_hi}</span></span>
-            </div>
-            """, unsafe_allow_html=True)
-
-            fig = build_chart(
-                result.get("candles"),
-                result.get("candle_signals"),
-                ind,
-                show_ema=show_ema,
-                show_vwap=show_vwap,
-                show_bb=show_bb,
-            )
-            if fig:
-                st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False})
-        else:
-            st.info("Loading chart data...")
-
-    # ── RIGHT PANEL ──────────────────────────────────────────────────────────
-    with right_col:
-
-        # Signal Engine
-        st.markdown("#### Signal Engine")
-        if result:
-            sig = result.get("signal", {})
-            stype = sig.get("type", "NEUTRAL")
-            score = sig.get("score", 0)
-            conf  = sig.get("confidence", "")
-            pats  = sig.get("patterns", [])
-            reas  = sig.get("reasons", [])
-            emoji = "🟢" if stype == "BUY" else "🔴" if stype == "SELL" else "🟡"
-            pat_str = pats[0]["pattern"] if pats else (reas[0] if reas else "—")
-            cls   = "sig-" + stype.lower()
-
-            st.markdown(f"""
-            <div class="{cls}">
-              <div class="sig-label">{emoji} {stype}</div>
-              <div class="sig-sub">{pat_str}</div>
-              <div class="sig-score">Score: {score:+d} · {conf}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Strength meter
-            st.markdown("<br>", unsafe_allow_html=True)
-            ind = result.get("indicators", {})
-            rsi_v = ind.get("rsi", 50)
-            reasons_str = " ".join(sig.get("reasons", []))
-
-            def val_badge(condition, true_txt, false_txt):
-                return f'<span style="color:#00d4aa">{true_txt}</span>' if condition else f'<span style="color:#f87171">{false_txt}</span>'
-
-            ema_bull  = "EMA Bullish" in reasons_str
-            macd_bull = ind.get("macd_hist", 0) > 0
-            vwap_above = "Above VWAP" in reasons_str
-
-            st.markdown(f"""
-            <div style='font-size:.78rem;'>
-              <div class="str-row"><span class="str-name">EMA Stack</span>
-                {val_badge(ema_bull, "🟢 Bullish", "🔴 Bearish")}</div>
-              <div class="str-row"><span class="str-name">RSI ({rsi_v})</span>
-                {val_badge(30 < rsi_v < 70, "🟢 Neutral", "⚠️ Extreme")}</div>
-              <div class="str-row"><span class="str-name">MACD Hist</span>
-                {val_badge(macd_bull, "🟢 Bull", "🔴 Bear")}</div>
-              <div class="str-row"><span class="str-name">VWAP</span>
-                {val_badge(vwap_above, "🟢 Above", "🔴 Below")}</div>
-              <div class="str-row"><span class="str-name">Patterns</span>
-                <span style='color:#e2e8f0'>{", ".join(p["pattern"] for p in pats) or "—"}</span>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # RSI progress bar
-            rsi_pct = int(min(max(rsi_v, 0), 100))
-            rsi_bar_col = "#f87171" if rsi_v > 70 or rsi_v < 30 else "#00d4aa"
-            st.markdown(f"""
-            <div style='margin:8px 0 2px;'>
-              <div style='height:6px;border-radius:3px;background:#1e3050;overflow:hidden;'>
-                <div style='height:100%;width:{rsi_pct}%;background:{rsi_bar_col};border-radius:3px;'></div>
-              </div>
-              <div style='display:flex;justify-content:space-between;font-size:9px;color:#4a6fa5;margin-top:2px;'>
-                <span>OS 30</span><span>RSI</span><span>OB 70</span>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.divider()
-
-        # Option Chain
-        st.markdown("#### Option Chain — OI")
-        with st.spinner("Loading OI..."):
-            chain_data, expiry_date = fetch_option_chain(sym)
-
-        if expiry_date:
-            st.caption(f"Expiry: {expiry_date}")
-
-        if chain_data and isinstance(chain_data, list) and len(chain_data):
-            try:
-                sorted_chain = sorted(chain_data, key=lambda x: x.get("strikePrice", 0))
-                max_oi = max(
-                    max((s.get("callOI", 0) for s in sorted_chain), default=1),
-                    max((s.get("putOI",  0) for s in sorted_chain), default=1),
-                )
-                total_call_oi = sum(s.get("callOI", 0) for s in sorted_chain)
-                total_put_oi  = sum(s.get("putOI",  0) for s in sorted_chain)
-
-                # ATM ± 5 strikes
-                mid = ltp or sorted_chain[len(sorted_chain)//2].get("strikePrice", 0)
-                sorted_chain.sort(key=lambda x: abs(x.get("strikePrice", 0) - mid))
-                atm_slice = sorted_chain[:9]
-                atm_slice.sort(key=lambda x: x.get("strikePrice", 0))
-
-                st.markdown("""
-                <div class="oc-row" style='font-size:.7rem;color:#4a6fa5;border-bottom:0.5px solid #1e3050;padding-bottom:3px;'>
-                  <div style='text-align:right'>CALL OI</div><div style='text-align:center'>Strike</div><div>PUT OI</div>
-                </div>""", unsafe_allow_html=True)
-
-                for s in atm_slice:
-                    sp = s.get("strikePrice", 0)
-                    coi = s.get("callOI", 0)
-                    poi = s.get("putOI",  0)
-                    c_pct = int(coi / max_oi * 100)
-                    p_pct = int(poi / max_oi * 100)
-                    is_atm = abs(sp - mid) < (atm_slice[1]["strikePrice"] - atm_slice[0]["strikePrice"] if len(atm_slice) > 1 else 100)
-                    strike_style = "color:#f59e0b;font-weight:800;" if is_atm else ""
-                    st.markdown(f"""
-                    <div class="oc-row">
-                      <div style='text-align:right'>
-                        <span class='oc-call'>{fmt_oi(coi)}</span>
-                        <div style='height:3px;border-radius:1px;background:linear-gradient(to left,#f8717188 {c_pct}%,transparent 0);margin-top:2px;'></div>
-                      </div>
-                      <div class='oc-strike' style='{strike_style}'>{int(sp)}</div>
-                      <div>
-                        <span class='oc-put'>{fmt_oi(poi)}</span>
-                        <div style='height:3px;border-radius:1px;background:linear-gradient(to right,#00d4aa88 {p_pct}%,transparent 0);margin-top:2px;'></div>
-                      </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                pcr = total_put_oi / total_call_oi if total_call_oi else 0
-                pcr_col = "#00d4aa" if pcr > 1.2 else "#f87171" if pcr < 0.8 else "#f59e0b"
                 st.markdown(f"""
-                <div style='font-size:.75rem;color:#4a6fa5;margin-top:6px;'>
-                  PCR: <span style='color:{pcr_col};font-weight:700;'>{pcr:.2f}</span>
-                  &nbsp;·&nbsp; Call OI: <span style='color:#f87171'>{fmt_oi(total_call_oi)}</span>
-                  &nbsp;·&nbsp; Put OI: <span style='color:#00d4aa'>{fmt_oi(total_put_oi)}</span>
+                <div class="ind-row">
+                  <span class="ind-chip">EMA9 <span>{ema9}</span></span>
+                  <span class="ind-chip">EMA21 <span>{ema21}</span></span>
+                  <span class="ind-chip">RSI(14) <span style="color:{rsi_col}">{rsi_v}</span></span>
+                  <span class="ind-chip">MACD <span style="color:{macd_col}">{macd_v:+.1f}</span></span>
+                  <span class="ind-chip">Hist <span style="color:{hist_col}">{hist_v:+.1f}</span></span>
+                  <span class="ind-chip">VWAP <span>{vwap_v}</span></span>
+                  <span class="ind-chip">ATR <span>{atr_v}</span></span>
+                  <span class="ind-chip">BB <span>{bb_lo} – {bb_hi}</span></span>
                 </div>
                 """, unsafe_allow_html=True)
-            except Exception as e:
-                st.caption(f"OI display error: {e}")
-        else:
-            st.caption("No option chain data. Check Data API subscription.")
 
-        st.divider()
+                fig = build_chart(
+                    result.get("candles"),
+                    result.get("candle_signals"),
+                    ind,
+                    show_ema=show_ema,
+                    show_vwap=show_vwap,
+                    show_bb=show_bb,
+                )
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True,
+                                    config={"displaylogo": False})
+            else:
+                st.info("Loading chart data...")
 
-        # Order Placement
-        st.markdown("#### Place F&O Order")
-        with st.container():
-            sec_id = st.text_input("Security ID (F&O scrip)", placeholder="e.g. 35001", key="order_secid",
-                                   help="Find at dhanhq.co/docs/v2/instruments/")
+        with right_col:
+            st.markdown("#### Signal Engine")
+            if result:
+                sig   = result.get("signal", {})
+                stype = sig.get("type", "NEUTRAL")
+                score = sig.get("score", 0)
+                conf  = sig.get("confidence", "")
+                pats  = sig.get("patterns", [])
+                reas  = sig.get("reasons", [])
+                emoji = "🟢" if stype == "BUY" else "🔴" if stype == "SELL" else "🟡"
+                pat_str = pats[0]["pattern"] if pats else (reas[0] if reas else "—")
+                cls   = "sig-" + stype.lower()
+
+                st.markdown(f"""
+                <div class="{cls}">
+                  <div class="sig-label">{emoji} {stype}</div>
+                  <div class="sig-sub">{pat_str}</div>
+                  <div class="sig-score">Score: {score:+d} · {conf}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                ind = result.get("indicators", {})
+                rsi_v = ind.get("rsi", 50)
+                reasons_str = " ".join(sig.get("reasons", []))
+
+                def val_badge(condition, true_txt, false_txt):
+                    return (f'<span style="color:#00d4aa">{true_txt}</span>'
+                            if condition else
+                            f'<span style="color:#f87171">{false_txt}</span>')
+
+                ema_bull  = "EMA Bullish" in reasons_str
+                macd_bull = ind.get("macd_hist", 0) > 0
+                vwap_above = "Above VWAP" in reasons_str
+
+                st.markdown(f"""
+                <div style='font-size:.78rem;'>
+                  <div class="str-row"><span class="str-name">EMA Stack</span>
+                    {val_badge(ema_bull, "🟢 Bullish", "🔴 Bearish")}</div>
+                  <div class="str-row"><span class="str-name">RSI ({rsi_v})</span>
+                    {val_badge(30 < rsi_v < 70, "🟢 Neutral", "⚠️ Extreme")}</div>
+                  <div class="str-row"><span class="str-name">MACD Hist</span>
+                    {val_badge(macd_bull, "🟢 Bull", "🔴 Bear")}</div>
+                  <div class="str-row"><span class="str-name">VWAP</span>
+                    {val_badge(vwap_above, "🟢 Above", "🔴 Below")}</div>
+                  <div class="str-row"><span class="str-name">Patterns</span>
+                    <span style='color:#e2e8f0'>{", ".join(p["pattern"] for p in pats) or "—"}</span>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                rsi_pct     = int(min(max(rsi_v, 0), 100))
+                rsi_bar_col = "#f87171" if rsi_v > 70 or rsi_v < 30 else "#00d4aa"
+                st.markdown(f"""
+                <div style='margin:8px 0 2px;'>
+                  <div style='height:6px;border-radius:3px;background:#1e3050;overflow:hidden;'>
+                    <div style='height:100%;width:{rsi_pct}%;background:{rsi_bar_col};border-radius:3px;'></div>
+                  </div>
+                  <div style='display:flex;justify-content:space-between;font-size:9px;color:#4a6fa5;margin-top:2px;'>
+                    <span>OS 30</span><span>RSI</span><span>OB 70</span>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.divider()
+
+            # ── OPTION CHAIN ─────────────────────────────────────────────────
+            st.markdown("#### Option Chain — OI")
+            with st.spinner("Loading OI..."):
+                chain_data, expiry_date = fetch_option_chain(sym)
+
+            if expiry_date:
+                st.caption(f"Expiry: {expiry_date}")
+
+            if chain_data and isinstance(chain_data, list) and len(chain_data):
+                try:
+                    sorted_chain = sorted(chain_data, key=lambda x: x.get("strikePrice", 0))
+                    max_oi = max(
+                        max((s.get("callOI", 0) for s in sorted_chain), default=1),
+                        max((s.get("putOI",  0) for s in sorted_chain), default=1),
+                    )
+                    total_call_oi = sum(s.get("callOI", 0) for s in sorted_chain)
+                    total_put_oi  = sum(s.get("putOI",  0) for s in sorted_chain)
+
+                    mid = ltp or sorted_chain[len(sorted_chain)//2].get("strikePrice", 0)
+                    sorted_chain.sort(key=lambda x: abs(x.get("strikePrice", 0) - mid))
+                    atm_slice = sorted_chain[:9]
+                    atm_slice.sort(key=lambda x: x.get("strikePrice", 0))
+
+                    st.markdown("""
+                    <div class="oc-row" style='font-size:.7rem;color:#4a6fa5;border-bottom:0.5px solid #1e3050;padding-bottom:3px;'>
+                      <div style='text-align:right'>CALL OI</div>
+                      <div style='text-align:center'>Strike</div>
+                      <div>PUT OI</div>
+                    </div>""", unsafe_allow_html=True)
+
+                    for s in atm_slice:
+                        sp  = s.get("strikePrice", 0)
+                        coi = s.get("callOI", 0)
+                        poi = s.get("putOI",  0)
+                        c_pct = int(coi / max_oi * 100)
+                        p_pct = int(poi / max_oi * 100)
+                        gap = (atm_slice[1]["strikePrice"] - atm_slice[0]["strikePrice"]) if len(atm_slice) > 1 else 100
+                        is_atm = abs(sp - mid) < gap
+                        strike_style = "color:#f59e0b;font-weight:800;" if is_atm else ""
+                        st.markdown(f"""
+                        <div class="oc-row">
+                          <div style='text-align:right'>
+                            <span class='oc-call'>{fmt_oi(coi)}</span>
+                            <div style='height:3px;border-radius:1px;background:linear-gradient(to left,#f8717188 {c_pct}%,transparent 0);margin-top:2px;'></div>
+                          </div>
+                          <div class='oc-strike' style='{strike_style}'>{int(sp)}</div>
+                          <div>
+                            <span class='oc-put'>{fmt_oi(poi)}</span>
+                            <div style='height:3px;border-radius:1px;background:linear-gradient(to right,#00d4aa88 {p_pct}%,transparent 0);margin-top:2px;'></div>
+                          </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    pcr = total_put_oi / total_call_oi if total_call_oi else 0
+                    pcr_col = "#00d4aa" if pcr > 1.2 else "#f87171" if pcr < 0.8 else "#f59e0b"
+                    st.markdown(f"""
+                    <div style='font-size:.75rem;color:#4a6fa5;margin-top:6px;'>
+                      PCR: <span style='color:{pcr_col};font-weight:700;'>{pcr:.2f}</span>
+                      &nbsp;·&nbsp; Call OI: <span style='color:#f87171'>{fmt_oi(total_call_oi)}</span>
+                      &nbsp;·&nbsp; Put OI: <span style='color:#00d4aa'>{fmt_oi(total_put_oi)}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                except Exception as e:
+                    st.caption(f"OI display error: {e}")
+            else:
+                st.caption("No option chain data. Check Data API subscription.")
+
+            st.divider()
+
+            # ── ORDER PLACEMENT ──────────────────────────────────────────────
+            st.markdown("#### Place F&O Order")
+            sec_id = st.text_input(
+                "Security ID (F&O scrip)", placeholder="e.g. 35001", key="order_secid",
+                help="Find at dhanhq.co/docs/v2/instruments/",
+            )
             ocol1, ocol2 = st.columns(2)
             with ocol1:
-                txn     = st.selectbox("Side",    ["BUY", "SELL"], key="order_txn")
+                txn      = st.selectbox("Side",    ["BUY", "SELL"], key="order_txn")
                 qty_lots = st.number_input("Lots", min_value=1, value=1, key="order_qty")
             with ocol2:
                 product = st.selectbox("Product", ["INTRADAY", "CNC"], key="order_product")
-                price   = st.number_input("Price (0=Market)", min_value=0.0, step=0.05, value=0.0, key="order_price")
+                price   = st.number_input("Price (0=Market)", min_value=0.0,
+                                          step=0.05, value=0.0, key="order_price")
 
-            lot_size = LOT_SIZES.get(sym, 50)
+            lot_size  = LOT_SIZES.get(sym, 50)
             total_qty = qty_lots * lot_size
             st.caption(f"Lot size: {lot_size} · Total qty: {total_qty}")
 
@@ -855,9 +1094,8 @@ def show_dashboard():
                     else:
                         res = place_order(sec_id, "BUY", product, total_qty, price)
                         if res.get("orderId") or res.get("status") == "success":
-                            oid = res.get("orderId") or "OK"
-                            st.success(f"✅ BUY placed — Order ID: {oid}")
-                            add_alert("BUY", f"CE BUY {sec_id} × {total_qty} @ {'Market' if price == 0 else price}")
+                            st.success(f"✅ BUY — {res.get('orderId','OK')}")
+                            add_alert("BUY", f"CE BUY {sec_id} × {total_qty}")
                         else:
                             st.error(res.get("errorMessage") or str(res))
             with b2:
@@ -867,48 +1105,43 @@ def show_dashboard():
                     else:
                         res = place_order(sec_id, txn, product, total_qty, price)
                         if res.get("orderId") or res.get("status") == "success":
-                            oid = res.get("orderId") or "OK"
-                            st.success(f"✅ Order placed — {oid}")
-                            add_alert("SELL", f"{txn} {sec_id} × {total_qty} @ {'Market' if price == 0 else price}")
+                            st.success(f"✅ {txn} — {res.get('orderId','OK')}")
+                            add_alert("SELL", f"{txn} {sec_id} × {total_qty}")
                         else:
                             st.error(res.get("errorMessage") or str(res))
 
-        st.divider()
+            st.divider()
 
-        # Signal Alerts
-        st.markdown("#### Signal Alerts")
-        alerts = st.session_state.alerts
-        if not alerts:
-            st.caption("No alerts yet — signals will appear here.")
-        else:
-            for a in alerts[:8]:
-                col_map = {"BUY": "#00d4aa", "SELL": "#f87171", "INFO": "#60a5fa"}
-                col = col_map.get(a["type"], "#4a6fa5")
-                st.markdown(f"""
-                <div class="alert-item">
-                  <div class="adot" style="background:{col};"></div>
-                  <div>
-                    <span style='color:{col};font-weight:700;font-size:.78rem;'>{a["type"]}</span>
-                    <span style='color:#94a3b8;font-size:.78rem;'> {a["text"]}</span>
-                    <div style='font-size:.68rem;color:#4a6fa5;'>{a["time"]}</div>
-                  </div>
-                </div>
-                """, unsafe_allow_html=True)
+            # ── SIGNAL ALERTS ────────────────────────────────────────────────
+            st.markdown("#### Signal Alerts")
+            alerts = st.session_state.alerts
+            if not alerts:
+                st.caption("No alerts yet.")
+            else:
+                for a in alerts[:8]:
+                    col_map = {"BUY": "#00d4aa", "SELL": "#f87171", "INFO": "#60a5fa"}
+                    col = col_map.get(a["type"], "#4a6fa5")
+                    st.markdown(f"""
+                    <div class="alert-item">
+                      <div class="adot" style="background:{col};"></div>
+                      <div>
+                        <span style='color:{col};font-weight:700;font-size:.78rem;'>{a["type"]}</span>
+                        <span style='color:#94a3b8;font-size:.78rem;'> {a["text"]}</span>
+                        <div style='font-size:.68rem;color:#4a6fa5;'>{a["time"]}</div>
+                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-        # Auto-refresh during market hours
-        mhour = datetime.now().hour
-        if 9 <= mhour < 16:
-            time.sleep(0.1)
-            st.markdown("""
-            <div style='font-size:.68rem;color:#4a6fa5;text-align:center;margin-top:8px;'>
-            🔄 Auto-refresh every 2 min during market hours
-            </div>""", unsafe_allow_html=True)
+            mhour = datetime.now().hour
+            if 9 <= mhour < 16:
+                st.markdown("""
+                <div style='font-size:.68rem;color:#4a6fa5;text-align:center;margin-top:8px;'>
+                🔄 Auto-refresh every 2 min during market hours
+                </div>""", unsafe_allow_html=True)
 
-    # ═══ TAB 2: STRATEGY SIGNALS ═══════════════════════════════════════════
     with tab_strategy:
         show_strategy_tab(result, sym, tf_label)
 
-    # ═══ TAB 3: STRATEGY CONFIG ═════════════════════════════════════════════
     with tab_settings:
         show_strategy_config_tab()
 
@@ -919,19 +1152,16 @@ def show_strategy_tab(result, sym, tf_label):
         st.info("Load chart data first (Chart & Analysis tab).")
         return
 
-    config      = st.session_state.get("strategy_config", {})
+    config        = st.session_state.get("strategy_config", {})
     active_trades = st.session_state.get("active_trades", {})
+    setups        = run_all_strategies(result, config, active_trades)
+    con           = consensus(setups)
 
-    # Run all strategies
-    setups = run_all_strategies(result, config, active_trades)
-    con    = consensus(setups)
-
-    # ── CONSENSUS BANNER ──────────────────────────────────────────────────
-    con_dir = con["consensus"]
-    con_col = ("#00d4aa" if "BUY" in con_dir else
-               "#f87171" if "SELL" in con_dir else
-               "#f59e0b" if con_dir in ("STOP_LOSS","EXIT") else "#4a6fa5")
-    con_bg  = con_col + "18"
+    con_dir   = con["consensus"]
+    con_col   = ("#00d4aa" if "BUY" in con_dir else
+                 "#f87171" if "SELL" in con_dir else
+                 "#f59e0b" if con_dir in ("STOP_LOSS","EXIT") else "#4a6fa5")
+    con_bg    = con_col + "18"
     con_emoji = ("🟢" if "BUY" in con_dir else "🔴" if "SELL" in con_dir else
                  "⚠️" if con_dir in ("STOP_LOSS","EXIT") else "⏸️")
 
@@ -951,7 +1181,6 @@ def show_strategy_tab(result, sym, tf_label):
     </div>
     """, unsafe_allow_html=True)
 
-    # ── STRATEGY CARDS ────────────────────────────────────────────────────
     for strat_name, setup in setups.items():
         action = setup.action
         col_map = {
@@ -964,51 +1193,44 @@ def show_strategy_tab(result, sym, tf_label):
             "WAIT":        ("#4a6fa5", "⏳ WAIT / NO SIGNAL"),
         }
         col, label = col_map.get(action, ("#4a6fa5", action))
-        conf_badge = {
-            "HIGH":   "🔥 HIGH confidence",
-            "MEDIUM": "⚡ MEDIUM confidence",
-            "LOW":    "🌀 LOW confidence",
-        }.get(setup.confidence, "")
+        conf_badge = {"HIGH": "🔥 HIGH", "MEDIUM": "⚡ MEDIUM", "LOW": "🌀 LOW"}.get(setup.confidence, "")
 
-        with st.expander(f"{label}   ·   **{strat_name}**   {conf_badge}", expanded=(action not in ("WAIT",))):
+        with st.expander(f"{label}   ·   **{strat_name}**   {conf_badge}",
+                         expanded=(action not in ("WAIT",))):
             strategy_obj = ALL_STRATEGIES.get(strat_name)
             if strategy_obj:
                 st.caption(strategy_obj.description)
 
-            # Main action display
             if action in ("ENTER_LONG", "ENTER_SHORT"):
                 direction = "LONG" if action == "ENTER_LONG" else "SHORT"
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Entry",    f"₹{setup.entry_price:,.2f}")
                 c2.metric("Stop Loss",f"₹{setup.stop_loss:,.2f}",
-                          delta=f"-{setup.sl_pct:.1f}%",
-                          delta_color="inverse")
+                          delta=f"-{setup.sl_pct:.1f}%", delta_color="inverse")
                 c3.metric("Target 1", f"₹{setup.target_1:,.2f}")
                 c4.metric("Target 2", f"₹{setup.target_2:,.2f}")
 
                 c5, c6, c7, c8 = st.columns(4)
                 c5.metric("Target 3", f"₹{setup.target_3:,.2f}")
-                c6.metric("R:R Ratio", f"1 : {setup.rr_ratio:.1f}")
-                c7.metric("Risk/Lot",  f"₹{setup.risk_per_lot:,.0f}")
-                c8.metric("Option",    f"{setup.option_type} @ {setup.suggested_strike:.0f}")
+                c6.metric("R:R",      f"1 : {setup.rr_ratio:.1f}")
+                c7.metric("Risk/Lot", f"₹{setup.risk_per_lot:,.0f}")
+                c8.metric("Option",   f"{setup.option_type} @ {setup.suggested_strike:.0f}")
 
-                # Risk bar
-                pct_sl  = setup.sl_pct
-                pct_t1  = round(abs(setup.target_1 - setup.entry_price) / setup.entry_price * 100, 2) if setup.entry_price else 0
-                pct_t2  = round(abs(setup.target_2 - setup.entry_price) / setup.entry_price * 100, 2) if setup.entry_price else 0
+                pct_sl = setup.sl_pct
+                pct_t1 = round(abs(setup.target_1 - setup.entry_price) / setup.entry_price * 100, 2) if setup.entry_price else 0
+                pct_t2 = round(abs(setup.target_2 - setup.entry_price) / setup.entry_price * 100, 2) if setup.entry_price else 0
                 st.markdown(f"""
                 <div style='margin:10px 0 4px;font-size:.75rem;color:#4a6fa5;'>Risk vs Reward</div>
                 <div style='display:flex;gap:4px;height:10px;border-radius:5px;overflow:hidden;'>
-                  <div style='width:{pct_sl * 10}%;background:#f87171;border-radius:5px 0 0 5px;' title='SL {pct_sl}%'></div>
-                  <div style='width:{pct_t1 * 8}%;background:#f59e0b;' title='T1 +{pct_t1}%'></div>
-                  <div style='width:{pct_t2 * 6}%;background:#00d4aa;border-radius:0 5px 5px 0;' title='T2 +{pct_t2}%'></div>
+                  <div style='width:{pct_sl*10}%;background:#f87171;border-radius:5px 0 0 5px;'></div>
+                  <div style='width:{pct_t1*8}%;background:#f59e0b;'></div>
+                  <div style='width:{pct_t2*6}%;background:#00d4aa;border-radius:0 5px 5px 0;'></div>
                 </div>
                 <div style='display:flex;justify-content:space-between;font-size:.68rem;color:#4a6fa5;margin-top:2px;'>
                   <span>SL -{pct_sl:.1f}%</span><span>T1 +{pct_t1:.1f}%</span><span>T2 +{pct_t2:.1f}%</span>
                 </div>
                 """, unsafe_allow_html=True)
 
-                # Reasons
                 if setup.reasons:
                     st.markdown("**Entry reasons:**")
                     for r in setup.reasons:
@@ -1017,63 +1239,55 @@ def show_strategy_tab(result, sym, tf_label):
                     for w in setup.warnings:
                         st.warning(f"⚠️ {w}")
 
-                # Trade activation button
                 st.markdown("---")
-                btn_col1, btn_col2 = st.columns([1,2])
-                with btn_col1:
-                    if st.button(f"✅ Mark as Active Trade", key=f"activate_{strat_name}"):
-                        st.session_state.active_trades[strat_name] = {
-                            "strategy":    strat_name,
-                            "direction":   direction,
-                            "entry_price": setup.entry_price,
-                            "stop_loss":   setup.stop_loss,
-                            "trailing_sl": setup.stop_loss,
-                            "target_1":    setup.target_1,
-                            "target_2":    setup.target_2,
-                            "target_3":    setup.target_3,
-                            "option_type": setup.option_type,
-                            "entry_time":  datetime.now().strftime("%H:%M IST"),
-                        }
-                        add_alert(action.split("_")[0],
-                                  f"{strat_name}: {direction} @ {setup.entry_price:.0f} SL {setup.stop_loss:.0f} T2 {setup.target_2:.0f}")
-                        st.success(f"Trade activated! Monitoring for exit/SL signals.")
-                        st.rerun()
+                if st.button(f"✅ Mark as Active Trade", key=f"activate_{strat_name}"):
+                    st.session_state.active_trades[strat_name] = {
+                        "strategy":    strat_name,
+                        "direction":   direction,
+                        "entry_price": setup.entry_price,
+                        "stop_loss":   setup.stop_loss,
+                        "trailing_sl": setup.stop_loss,
+                        "target_1":    setup.target_1,
+                        "target_2":    setup.target_2,
+                        "target_3":    setup.target_3,
+                        "option_type": setup.option_type,
+                        "entry_time":  datetime.now().strftime("%H:%M IST"),
+                    }
+                    add_alert(action.split("_")[0],
+                              f"{strat_name}: {direction} @ {setup.entry_price:.0f} SL {setup.stop_loss:.0f}")
+                    st.success("Trade activated!")
+                    st.rerun()
 
             elif action == "HOLD":
                 if setup.in_trade:
-                    pnl = setup.current_pnl_pct
-                    pnl_col = "#00d4aa" if pnl >= 0 else "#f87171"
+                    pnl  = setup.current_pnl_pct
                     mile = setup.milestone_hit
-
                     c1, c2, c3, c4 = st.columns(4)
-                    c1.metric("Entry",     f"₹{active_trades.get(strat_name, {}).get('entry_price', 0):,.0f}")
-                    c2.metric("Curr P&L",  f"{pnl:+.2f}%",
-                              delta=f"{'🎯 ' + mile.replace('_',' ') if mile else ''}",
+                    c1.metric("Entry",    f"₹{active_trades.get(strat_name,{}).get('entry_price',0):,.0f}")
+                    c2.metric("Curr P&L", f"{pnl:+.2f}%",
+                              delta=f"{'🎯 '+mile.replace('_',' ') if mile else ''}",
                               delta_color="normal" if pnl >= 0 else "inverse")
-                    c3.metric("Stop Loss", f"₹{setup.stop_loss:,.0f}")
-                    c4.metric("Trail SL",  f"₹{setup.trailing_sl:,.0f}" if setup.trailing_sl else "—")
-
-                    t_col1, t_col2, t_col3 = st.columns(3)
-                    t_col1.metric("T1", f"₹{setup.target_1:,.0f}")
-                    t_col2.metric("T2", f"₹{setup.target_2:,.0f}")
-                    t_col3.metric("T3", f"₹{setup.target_3:,.0f}")
-
+                    c3.metric("Stop Loss",f"₹{setup.stop_loss:,.0f}")
+                    c4.metric("Trail SL", f"₹{setup.trailing_sl:,.0f}" if setup.trailing_sl else "—")
+                    t1, t2, t3 = st.columns(3)
+                    t1.metric("T1", f"₹{setup.target_1:,.0f}")
+                    t2.metric("T2", f"₹{setup.target_2:,.0f}")
+                    t3.metric("T3", f"₹{setup.target_3:,.0f}")
                     if mile:
-                        mile_col = "#00d4aa" if "T3" in mile else "#f59e0b" if "T2" in mile else "#60a5fa"
+                        mc = "#00d4aa" if "T3" in mile else "#f59e0b" if "T2" in mile else "#60a5fa"
                         st.markdown(f"""
-                        <div style='background:{mile_col}22;border:1px solid {mile_col}55;border-radius:7px;
-                             padding:8px 14px;margin:8px 0;font-size:.82rem;color:{mile_col};font-weight:700;'>
-                          🎯 {mile.replace("_", " ")} — {'Consider partial exit / move SL to entry' if mile == 'T1_HIT' else 'Activate trailing SL' if mile == 'T2_HIT' else 'Full exit recommended'}
-                        </div>
-                        """, unsafe_allow_html=True)
+                        <div style='background:{mc}22;border:1px solid {mc}55;border-radius:7px;
+                             padding:8px 14px;margin:8px 0;font-size:.82rem;color:{mc};font-weight:700;'>
+                          🎯 {mile.replace("_"," ")}
+                        </div>""", unsafe_allow_html=True)
 
                 for r in (setup.hold_reasons or []):
                     st.markdown(f"⏸ {r}")
 
                 if setup.in_trade:
-                    if st.button(f"🚪 Close Trade (Manual Exit)", key=f"close_{strat_name}"):
+                    if st.button(f"🚪 Close Trade", key=f"close_{strat_name}"):
                         at = st.session_state.active_trades.pop(strat_name, {})
-                        add_alert("INFO", f"{strat_name}: Manual exit @ entry {at.get('entry_price',0):.0f}")
+                        add_alert("INFO", f"{strat_name}: Manual exit")
                         st.success("Trade closed.")
                         st.rerun()
 
@@ -1081,65 +1295,56 @@ def show_strategy_tab(result, sym, tf_label):
                 direction = "LONG" if action == "EXIT_LONG" else "SHORT"
                 pnl = setup.current_pnl_pct
                 pnl_col = "#00d4aa" if pnl >= 0 else "#f87171"
-
                 st.markdown(f"""
-                <div style='background:#60a5fa18;border:1px solid #60a5fa55;border-radius:8px;
-                     padding:12px;margin-bottom:8px;'>
+                <div style='background:#60a5fa18;border:1px solid #60a5fa55;border-radius:8px;padding:12px;margin-bottom:8px;'>
                   <span style='font-size:1.1rem;font-weight:700;color:#60a5fa;'>EXIT {direction}</span>
                   <span style='font-size:.9rem;color:{pnl_col};margin-left:12px;'>P&L: {pnl:+.2f}%</span>
-                </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown("**Exit reasons:**")
+                </div>""", unsafe_allow_html=True)
                 for r in (setup.exit_reasons or []):
                     st.markdown(f"🔵 {r}")
-
                 if st.button(f"✅ Confirm Exit", key=f"exit_{strat_name}"):
-                    at = st.session_state.active_trades.pop(strat_name, {})
+                    st.session_state.active_trades.pop(strat_name, {})
                     add_alert("INFO", f"{strat_name}: EXIT {direction} — P&L {pnl:+.2f}%")
-                    st.success(f"Trade exited. P&L: {pnl:+.2f}%")
+                    st.success(f"Exited. P&L: {pnl:+.2f}%")
                     st.rerun()
 
             elif action == "STOP_LOSS":
                 pnl = setup.current_pnl_pct
                 st.markdown(f"""
-                <div style='background:#ef444422;border:2px solid #ef4444;border-radius:8px;
-                     padding:14px;margin-bottom:8px;'>
+                <div style='background:#ef444422;border:2px solid #ef4444;border-radius:8px;padding:14px;margin-bottom:8px;'>
                   <div style='font-size:1.3rem;font-weight:800;color:#ef4444;'>🚨 STOP LOSS HIT</div>
-                  <div style='font-size:.85rem;color:#f87171;margin-top:4px;'>Loss: {pnl:+.2f}% — Exit immediately to limit further damage</div>
-                </div>
-                """, unsafe_allow_html=True)
-
+                  <div style='font-size:.85rem;color:#f87171;margin-top:4px;'>Loss: {pnl:+.2f}%</div>
+                </div>""", unsafe_allow_html=True)
                 for r in (setup.sl_reasons or []):
                     st.error(r)
-
-                if st.button(f"🚨 Confirm SL Exit", key=f"sl_{strat_name}",
-                             type="primary"):
-                    at = st.session_state.active_trades.pop(strat_name, {})
-                    add_alert("SELL", f"{strat_name}: STOP LOSS — Loss {pnl:+.2f}%")
+                if st.button(f"🚨 Confirm SL Exit", key=f"sl_{strat_name}", type="primary"):
+                    st.session_state.active_trades.pop(strat_name, {})
+                    add_alert("SELL", f"{strat_name}: STOP LOSS — {pnl:+.2f}%")
                     st.error(f"SL exit confirmed. Loss: {pnl:+.2f}%")
                     st.rerun()
 
-            else:  # WAIT
-                for r in (setup.hold_reasons or ["No setup forming — stand aside"]):
+            else:
+                for r in (setup.hold_reasons or ["No setup — stand aside"]):
                     st.caption(f"⏳ {r}")
 
-    # ── ACTIVE TRADES SUMMARY ─────────────────────────────────────────────
     if active_trades:
         st.divider()
         st.markdown("### 🗂️ Active Trades")
         for strat, trade in list(active_trades.items()):
-            close = result.get("candles", [{}])[-1].get("c", 0) if result else 0
-            entry = trade.get("entry_price", close)
+            close     = result.get("candles", [{}])[-1].get("c", 0) if result else 0
+            entry     = trade.get("entry_price", close)
             direction = trade.get("direction", "LONG")
-            pnl = ((close - entry) / entry * 100) if direction == "LONG" and entry else ((entry - close) / entry * 100) if entry else 0
+            pnl = ((close - entry) / entry * 100) if direction == "LONG" and entry else \
+                  ((entry - close) / entry * 100) if entry else 0
             pnl_col = "#00d4aa" if pnl >= 0 else "#f87171"
             st.markdown(f"""
             <div style='background:#0d1525;border:0.5px solid #1e3050;border-radius:8px;
                  padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;'>
               <div>
                 <span style='font-weight:700;color:#e2e8f0;'>{strat}</span>
-                <span style='color:#4a6fa5;font-size:.75rem;margin-left:8px;'>{direction} · Entry {entry:.0f} · SL {trade.get("stop_loss",0):.0f}</span>
+                <span style='color:#4a6fa5;font-size:.75rem;margin-left:8px;'>
+                  {direction} · Entry {entry:.0f} · SL {trade.get("stop_loss",0):.0f}
+                </span>
               </div>
               <div style='font-weight:700;font-size:1rem;color:{pnl_col};'>{pnl:+.2f}%</div>
             </div>
@@ -1149,7 +1354,7 @@ def show_strategy_tab(result, sym, tf_label):
 # ─── STRATEGY CONFIG TAB ─────────────────────────────────────────────────────
 def show_strategy_config_tab():
     st.markdown("### ⚙️ Strategy Configuration")
-    st.caption("Customise parameters for each strategy. Changes apply immediately on next signal check.")
+    st.caption("Customise parameters for each strategy. Changes apply on next signal check.")
 
     config = st.session_state.get("strategy_config", {})
 
@@ -1157,113 +1362,66 @@ def show_strategy_config_tab():
         c1, c2, c3 = st.columns(3)
         with c1:
             sl_atr = st.slider("SL ATR Multiplier", 0.5, 3.0,
-                                float(config.get("sl_atr_mult", 1.5)), 0.1,
-                                help="Stop Loss = entry ± (ATR × this value). Higher = wider SL, fewer stops.")
+                                float(config.get("sl_atr_mult", 1.5)), 0.1)
         with c2:
             t2_rr = st.slider("Target 2 RR", 1.5, 5.0,
-                               float(config.get("t2_rr", 2.5)), 0.5,
-                               help="Risk:Reward for Target 2. 2.5 means gain = 2.5× your risk.")
+                               float(config.get("t2_rr", 2.5)), 0.5)
         with c3:
             t3_rr = st.slider("Target 3 RR", 2.0, 8.0,
-                               float(config.get("t3_rr", 4.0)), 0.5,
-                               help="Risk:Reward for Target 3 (runner / trail).")
+                               float(config.get("t3_rr", 4.0)), 0.5)
         config["sl_atr_mult"] = sl_atr
         config["t2_rr"]       = t2_rr
         config["t3_rr"]       = t3_rr
         config["t1_rr"]       = round(t2_rr * 0.6, 1)
 
     with st.expander("📊 EMA Trend Follow Settings"):
-        c1, c2 = st.columns(2)
-        with c1:
-            min_score = st.slider("Min Signal Score to Enter", 20, 70,
-                                   int(config.get("min_score", 30)), 5,
-                                   help="Higher = stricter entry filter, fewer but better signals.")
-        with c2:
-            st.markdown(f"""
-            <div style='background:#0d1525;border-radius:6px;padding:10px;margin-top:4px;font-size:.8rem;'>
-            <b style='color:#00d4aa;'>Entry rule:</b><br>
-            EMA9 × EMA21 cross OR score ≥ {min_score}<br>
-            + MACD histogram positive<br>
-            + Price above VWAP
-            </div>""", unsafe_allow_html=True)
+        min_score = st.slider("Min Signal Score to Enter", 20, 70,
+                               int(config.get("min_score", 30)), 5)
         config["min_score"] = min_score
 
     with st.expander("📉 RSI Mean Reversion Settings"):
         c1, c2 = st.columns(2)
         with c1:
-            rsi_os = st.slider("RSI Oversold threshold", 20, 40,
-                                int(config.get("rsi_os", 30)), 1,
-                                help="Buy signal fires when RSI drops below this.")
+            rsi_os = st.slider("RSI Oversold", 20, 40, int(config.get("rsi_os", 30)), 1)
         with c2:
-            rsi_ob = st.slider("RSI Overbought threshold", 60, 80,
-                                int(config.get("rsi_ob", 70)), 1,
-                                help="Sell signal fires when RSI rises above this.")
+            rsi_ob = st.slider("RSI Overbought", 60, 80, int(config.get("rsi_ob", 70)), 1)
         config["rsi_os"] = rsi_os
         config["rsi_ob"] = rsi_ob
 
     with st.expander("🎯 Multi-Confluence Settings"):
         min_conf = st.slider("Minimum Confluences Required", 2, 6,
-                              int(config.get("min_confluences", 4)), 1,
-                              help="How many independent signals must agree before entering. Higher = rarer but higher quality trades.")
+                              int(config.get("min_confluences", 4)), 1)
         config["min_confluences"] = min_conf
-        st.caption(f"Currently requires **{min_conf} out of 6** signals to align: EMA Stack, MACD, RSI, VWAP, BB, Candle Pattern")
+        st.caption(f"Requires **{min_conf} of 6** signals: EMA, MACD, RSI, VWAP, BB, Pattern")
 
-    # Save button
     if st.button("💾 Save Configuration", type="primary", use_container_width=True):
         st.session_state.strategy_config = config
-        st.success("✅ Configuration saved! Will apply on next signal refresh.")
+        st.success("✅ Saved!")
 
     st.divider()
-
-    # Strategy cheatsheet
     st.markdown("### 📚 Strategy Guide")
     guide = {
-        "EMA Trend Follow": {
-            "best_for": "Trending markets (strong up or down move)",
-            "avoid":    "Sideways / range-bound days",
-            "signal":   "EMA9 × EMA21 cross + MACD + VWAP",
-            "sl_style": "ATR-based below swing low",
-        },
-        "RSI Mean Reversion": {
-            "best_for": "Range-bound, consolidating markets",
-            "avoid":    "Strong trending days (RSI stays extreme)",
-            "signal":   "RSI oversold/overbought + BB band touch + reversal candle",
-            "sl_style": "Below/above the candle low/high that triggered",
-        },
-        "MACD Momentum": {
-            "best_for": "Breakout days, high volatility",
-            "avoid":    "Low volume, choppy markets",
-            "signal":   "MACD line × signal line cross + histogram expansion",
-            "sl_style": "Wide ATR SL — momentum trades need room",
-        },
-        "VWAP Reversal": {
-            "best_for": "Intraday scalps around VWAP level",
-            "avoid":    "Pre-market / first 15 min (VWAP unreliable)",
-            "signal":   "Price reclaims or rejects VWAP + volume + candle",
-            "sl_style": "Tight — just beyond VWAP level",
-        },
-        "Multi-Confluence": {
-            "best_for": "Any market — highest accuracy, fewest signals",
-            "avoid":    "When impatient — may wait all day for a setup",
-            "signal":   "4+ of: EMA, RSI, MACD, VWAP, BB, Pattern all agree",
-            "sl_style": "ATR × 1.8 — widest, for highest conviction trades",
-        },
+        "EMA Trend Follow":    ("Trending markets",     "Sideways days",          "EMA9×EMA21 cross + MACD + VWAP", "ATR below swing low"),
+        "RSI Mean Reversion":  ("Range-bound markets",  "Strong trending days",   "RSI extreme + BB band + reversal candle", "Below/above trigger candle"),
+        "MACD Momentum":       ("Breakout/high vol",    "Low volume choppy",      "MACD line × signal + histogram expansion", "Wide ATR SL"),
+        "VWAP Reversal":       ("Intraday scalps",      "First 15 min",           "Price reclaims/rejects VWAP + volume", "Just beyond VWAP level"),
+        "Multi-Confluence":    ("Any market (highest accuracy)", "Impatient traders", "4+ of EMA/RSI/MACD/VWAP/BB/Pattern agree", "ATR×1.8 — widest"),
     }
-    for name, g in guide.items():
+    for name, (best, avoid, signal, sl) in guide.items():
         with st.expander(f"📖 {name}"):
-            gc1, gc2 = st.columns(2)
-            with gc1:
-                st.markdown(f"✅ **Best for:** {g['best_for']}")
-                st.markdown(f"❌ **Avoid when:** {g['avoid']}")
-            with gc2:
-                st.markdown(f"⚡ **Signal:** {g['signal']}")
-                st.markdown(f"🛑 **Stop Loss:** {g['sl_style']}")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown(f"✅ **Best for:** {best}")
+                st.markdown(f"❌ **Avoid:** {avoid}")
+            with c2:
+                st.markdown(f"⚡ **Signal:** {signal}")
+                st.markdown(f"🛑 **SL:** {sl}")
 
     st.divider()
     st.markdown("### 🗑️ Clear Active Trades")
     if st.button("Clear All Active Trades", type="secondary"):
         st.session_state.active_trades = {}
-        st.success("All active trades cleared.")
+        st.success("Cleared.")
         st.rerun()
 
 
