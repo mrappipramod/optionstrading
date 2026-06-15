@@ -295,7 +295,7 @@ def build_chart(candles, candle_signals, indicators, show_ema=True, show_vwap=Tr
         x=df["dt"],
         open=df["o"], high=df["h"], low=df["l"], close=df["c"],
         increasing_line_color=COLORS["green"], decreasing_line_color=COLORS["red"],
-        increasing_fillcolor=COLORS["green"]+"66", decreasing_fillcolor=COLORS["red"]+"66",
+        increasing_fillcolor="rgba(0,212,170,0.4)", decreasing_fillcolor="rgba(248,113,113,0.4)",
         name="Price", line_width=1,
     ), row=1, col=1)
 
