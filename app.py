@@ -1602,9 +1602,16 @@ def show_dashboard():
                 st.session_state.last_fetch[ck]     = time.time()
                 sig = result.get("signal", {})
                 if sig.get("type") in ("BUY", "SELL"):
-                    pats = sig.get("patterns", [])
-                    add_alert(sig["type"],
-                              f"{sym} {pats[0]['pattern'] if pats else sig.get('reasons',[''])[0]} ({tf_lbl})")
+                    pats       = sig.get("patterns", [])
+                    pat_str    = pats[0]["pattern"] if pats else sig.get("reasons",[""])[0]
+                    stype_sig  = sig.get("type")
+                    # Make alert specific to options action
+                    if has_option_chain(sym):
+                        opt_str = "→ BUY CE 📈" if stype_sig == "BUY" else "→ BUY PE 📉"
+                    else:
+                        opt_str = "→ BUY stock" if stype_sig == "BUY" else "→ SELL/SHORT"
+                    add_alert(stype_sig,
+                              f"{sym} {pat_str} ({tf_lbl}) {opt_str}")
             except Exception as e:
                 st.error(f"⚠️ Analysis error: {e}")
         else:
@@ -1673,7 +1680,7 @@ def show_dashboard():
                 st.info("Waiting for candle data...")
 
         with rcol:
-            # Signal
+            # ── SIGNAL & OPTIONS ACTION PANEL ────────────────────────────────
             st.markdown("#### Signal")
             if result:
                 sig   = result.get("signal",{})
@@ -1682,19 +1689,100 @@ def show_dashboard():
                 conf  = sig.get("confidence","")
                 pats  = sig.get("patterns",[])
                 reas  = sig.get("reasons",[])
-                emoji = "🟢" if stype=="BUY" else "🔴" if stype=="SELL" else "🟡"
-                pat   = pats[0]["pattern"] if pats else (reas[0] if reas else "—")
+                ind   = result.get("indicators",{})
+                rsi_v = ind.get("rsi",50)
+                close = result.get("candles",[{}])[-1].get("c", ltp) if result.get("candles") else ltp
+                atr   = ind.get("atr", close * 0.005)
 
-                st.markdown(f"""<div class='sig-{stype}'>
-                  <div class='sig-label'>{emoji} {stype}</div>
-                  <div class='sig-sub'>{pat}</div>
-                  <div class='sig-score'>Score {score:+d} · {conf}</div>
+                # ── Derive options action ─────────────────────────────────────
+                is_fno = has_option_chain(sym)
+
+                # ATM strike (round to nearest 50 for indices, 10 for stocks)
+                strike_gap = 50 if sym in ("NIFTY","BANKNIFTY","SENSEX","BANKEX") else                              100 if sym in ("FINNIFTY","MIDCPNIFTY") else                              50  if close > 5000 else                              20  if close > 1000 else 10
+                atm_strike = round(close / strike_gap) * strike_gap
+
+                if stype == "BUY":
+                    opt_action = "BUY CE (Call)"
+                    opt_color  = "#00d4aa"
+                    opt_bg     = "#00d4aa14"
+                    opt_border = "#00d4aa55"
+                    opt_emoji  = "🟢"
+                    signal_lbl = "BULLISH — BUY CE"
+                    strike_lbl = f"ATM {int(atm_strike)} CE"
+                    otm_lbl    = f"OTM {int(atm_strike + strike_gap)} CE"
+                    action_tip = "Buy a CALL option. Profit when price rises."
+                elif stype == "SELL":
+                    opt_action = "BUY PE (Put)"
+                    opt_color  = "#f87171"
+                    opt_bg     = "#f8717114"
+                    opt_border = "#f8717155"
+                    opt_emoji  = "🔴"
+                    signal_lbl = "BEARISH — BUY PE"
+                    strike_lbl = f"ATM {int(atm_strike)} PE"
+                    otm_lbl    = f"OTM {int(atm_strike - strike_gap)} PE"
+                    action_tip = "Buy a PUT option. Profit when price falls."
+                else:
+                    opt_action = "WAIT — No Trade"
+                    opt_color  = "#f59e0b"
+                    opt_bg     = "#f59e0b10"
+                    opt_border = "#f59e0b44"
+                    opt_emoji  = "⏸️"
+                    signal_lbl = "NEUTRAL — STAND ASIDE"
+                    strike_lbl = f"Watch {int(atm_strike)}"
+                    otm_lbl    = ""
+                    action_tip = "No clear direction. Wait for confirmation."
+
+                pat = pats[0]["pattern"] if pats else (reas[0] if reas else "—")
+
+                # ── Main action card ──────────────────────────────────────────
+                fno_action_html = ""
+                if is_fno and stype != "NEUTRAL":
+                    fno_action_html = f"""
+                      <div style='margin-top:8px;padding:8px 10px;background:#060b18;
+                           border-radius:7px;border:.5px solid {opt_border};'>
+                        <div style='font-size:.65rem;color:#4a6fa5;margin-bottom:2px;'>OPTIONS ACTION</div>
+                        <div style='font-size:1rem;font-weight:800;color:{opt_color};'>{opt_emoji} {opt_action}</div>
+                        <div style='font-size:.72rem;color:#e2e8f0;margin-top:3px;'>
+                          Preferred: <b>{strike_lbl}</b>
+                        </div>
+                        <div style='font-size:.68rem;color:#4a6fa5;'>
+                          Aggressive: {otm_lbl}
+                        </div>
+                        <div style='font-size:.65rem;color:#4a6fa5;margin-top:3px;font-style:italic;'>
+                          {action_tip}
+                        </div>
+                      </div>"""
+                elif not is_fno and stype != "NEUTRAL":
+                    eq_action = "BUY shares" if stype == "BUY" else "SELL / SHORT shares"
+                    eq_color  = "#00d4aa" if stype == "BUY" else "#f87171"
+                    fno_action_html = f"""
+                      <div style='margin-top:8px;padding:8px 10px;background:#060b18;
+                           border-radius:7px;border:.5px solid {opt_border};'>
+                        <div style='font-size:.65rem;color:#4a6fa5;margin-bottom:2px;'>EQUITY ACTION</div>
+                        <div style='font-size:.95rem;font-weight:700;color:{eq_color};'>{opt_emoji} {eq_action}</div>
+                        <div style='font-size:.65rem;color:#4a6fa5;margin-top:3px;'>
+                          No F&O chain — trade underlying stock directly
+                        </div>
+                      </div>"""
+
+                st.markdown(f"""
+                <div style='background:{opt_bg};border:1.5px solid {opt_border};
+                     border-radius:10px;padding:12px;text-align:center;'>
+                  <div style='font-size:1.4rem;font-weight:800;color:{opt_color};
+                       letter-spacing:.5px;'>{opt_emoji} {signal_lbl}</div>
+                  <div style='font-size:.75rem;color:#94a3b8;margin-top:3px;'>{pat}</div>
+                  <div style='font-size:.68rem;color:#4a6fa5;margin-top:2px;'>
+                    Score {score:+d} · {conf} confidence
+                  </div>
+                  {fno_action_html}
                 </div>""", unsafe_allow_html=True)
 
-                ind = result.get("indicators",{})
-                rsi_v = ind.get("rsi",50)
+                # ── Indicator strength rows ───────────────────────────────────
                 rs = " ".join(reas)
-                def vb(c,t,f): return f'<span style="color:#00d4aa">{t}</span>' if c else f'<span style="color:#f87171">{f}</span>'
+                def vb(c,t,f):
+                    return (f'<span style="color:#00d4aa">{t}</span>' if c
+                            else f'<span style="color:#f87171">{f}</span>')
+
                 st.markdown(f"""<div style='font-size:.76rem;margin-top:8px;'>
                   <div class='str-row'><span class='str-name'>EMA Stack</span>{vb("EMA Bullish" in rs,"🟢 Bull","🔴 Bear")}</div>
                   <div class='str-row'><span class='str-name'>RSI {rsi_v:.0f}</span>{vb(30<rsi_v<70,"🟢 OK","⚠️ Extreme")}</div>
@@ -1702,9 +1790,16 @@ def show_dashboard():
                   <div class='str-row'><span class='str-name'>VWAP</span>{vb("Above VWAP" in rs,"🟢 Above","🔴 Below")}</div>
                   <div class='str-row'><span class='str-name'>Patterns</span>
                     <span style='color:#e2e8f0'>{", ".join(p["pattern"] for p in pats) or "—"}</span></div>
+                  <div class='str-row'><span class='str-name'>LTP</span>
+                    <span style='color:#e2e8f0'>₹{close:,.2f}</span></div>
+                  <div class='str-row'><span class='str-name'>ATM Strike</span>
+                    <span style='color:#f59e0b;font-weight:700'>{int(atm_strike)}</span></div>
+                  <div class='str-row'><span class='str-name'>ATR</span>
+                    <span style='color:#e2e8f0'>{atr:.1f} pts</span></div>
                 </div>""", unsafe_allow_html=True)
 
-                rp = int(min(max(rsi_v,0),100))
+                # RSI bar
+                rp  = int(min(max(rsi_v,0),100))
                 bc2 = "#f87171" if rsi_v>70 or rsi_v<30 else "#00d4aa"
                 st.markdown(f"""<div style='margin:8px 0 2px'>
                   <div style='height:5px;border-radius:3px;background:#1e3050;overflow:hidden'>
