@@ -182,7 +182,7 @@ SECURITY_IDS = {
     "TITAN":      {"id":"3506",  "segment":"NSE_EQ", "name":"Titan Company",       "sector":"Consumer"},
     "TRENT":      {"id":"3519",  "segment":"NSE_EQ", "name":"Trent",               "sector":"Retail"},
     "DMART":      {"id":"7432",  "segment":"NSE_EQ", "name":"Avenue Supermarts",   "sector":"Retail"},
-    "ZOMATO":     {"id":"21866", "segment":"NSE_EQ", "name":"Zomato",              "sector":"Consumer"},
+    "ETERNAL":    {"id":"21866", "segment":"NSE_EQ", "name":"Eternal (Zomato)",     "sector":"Consumer"},
     "IRCTC":      {"id":"16916", "segment":"NSE_EQ", "name":"IRCTC",               "sector":"Consumer"},
     "NYKAA":      {"id":"21827", "segment":"NSE_EQ", "name":"Nykaa",               "sector":"Retail"},
     # CAPITAL GOODS & DEFENCE
@@ -292,11 +292,13 @@ def last_trading_day():
 
 def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15"):
     """
-    Returns (from_str, to_str) as plain YYYY-MM-DD strings for Dhan API.
-    Dhan /charts/intraday accepts date-only strings (no time component).
-    fromDate and toDate are both INCLUSIVE.
+    Returns (from_str, to_str) for Dhan API.
+    - /charts/intraday  : requires "YYYY-MM-DD HH:MM:SS" datetime strings
+    - /charts/historical: requires plain "YYYY-MM-DD" date strings
+    For intraday same-day fetch: fromDate=today 09:15:00, toDate=today 15:30:00
     """
-    today = datetime.now().date()
+    today    = datetime.now().date()
+    is_intraday = interval in ("1", "5", "15", "25", "60")
 
     if date_mode == "Today":
         fd = today
@@ -305,7 +307,7 @@ def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15
         fd = last_trading_day()
         td = fd
     elif date_mode == "This Week":
-        fd = today - timedelta(days=today.weekday())   # Monday
+        fd = today - timedelta(days=today.weekday())
         td = today
     elif date_mode == "Last 5 Days":
         fd = today - timedelta(days=6)
@@ -329,8 +331,12 @@ def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15
         fd = today - timedelta(days=5)
         td = today
 
-    # Always return plain YYYY-MM-DD — no time suffix for any endpoint
-    return (str(fd), str(td))
+    if is_intraday:
+        # Intraday API requires full datetime strings
+        return (f"{fd} 09:15:00", f"{td} 15:30:00")
+    else:
+        # Daily historical API uses plain date strings
+        return (str(fd), str(td))
 
 def _instrument_type(segment):
     """Map Dhan segment to instrument type string."""
@@ -406,6 +412,41 @@ def fetch_holdings():
 
 def fetch_orders():
     return dhan_get("/orders")
+
+@st.cache_data(ttl=3600)
+def search_dhan_instrument(query: str, segment: str = "NSE_EQ"):
+    """
+    Search Dhan's live instrument list for a symbol by name or ticker.
+    Returns list of {symbol, id, name} dicts. Cached for 1 hour.
+    """
+    try:
+        url = f"{DHAN_BASE}/instrument/{segment}"
+        r   = requests.get(url, headers=_hdrs(), timeout=15)
+        if r.status_code != 200:
+            return []
+        lines   = r.text.strip().split("\n")
+        if not lines:
+            return []
+        header  = [h.strip().strip('"') for h in lines[0].split(",")]
+        results = []
+        q_upper = query.upper()
+        for line in lines[1:]:
+            cols = [c.strip().strip('"') for c in line.split(",")]
+            if len(cols) < len(header):
+                continue
+            row = dict(zip(header, cols))
+            sym  = row.get("SEM_TRADING_SYMBOL","") or row.get("TRADING_SYMBOL","")
+            name = row.get("SEM_INSTRUMENT_NAME","") or row.get("INSTRUMENT_NAME","")
+            sid  = row.get("SEM_SMST_SECURITY_ID","") or row.get("SECURITY_ID","")
+            if q_upper in sym.upper() or q_upper in name.upper():
+                results.append({"symbol": sym, "id": sid, "name": name, "segment": segment})
+            if len(results) >= 20:
+                break
+        return results
+    except Exception:
+        return []
+
+
 
 def fetch_option_chain(symbol, expiry=None):
     """Returns (parsed_chain_list, expiries_list, last_price, raw_oc_dict)"""
@@ -572,7 +613,7 @@ FNO_STOCKS = {
     # Telecom
     "BHARTIARTL","INDUSTOWER","IDEA",
     # Consumer & Retail
-    "TITAN","TRENT","DMART","NYKAA","ZOMATO","PAYTM","IRCTC","VBL",
+    "TITAN","TRENT","DMART","NYKAA","ETERNAL","IRCTC","VBL",
     "PAGEIND","ABFRL","VEDANT",
     # Capital Goods & Defence
     "SIEMENS","ABB","HAVELLS","CUMMINSIND","HAL","BEL","BHEL","COCHINSHIP",
@@ -1384,9 +1425,39 @@ def show_dashboard():
             else:
                 st.caption("No results.")
 
-            with st.expander("🔧 Load any NSE scrip by Security ID"):
-                c_sym = st.text_input("Label", placeholder="e.g. PAYTM", key="cs_sym")
-                c_id  = st.text_input("Security ID", placeholder="e.g. 21865", key="cs_id")
+            with st.expander("🔧 Load any scrip by Security ID"):
+                st.caption("Look up and add any NSE/BSE instrument not in the list above.")
+                # Live search from Dhan instrument master
+                live_q   = st.text_input("Search Dhan instruments", placeholder="e.g. ETERNAL, PAYTM", key="cs_live")
+                live_seg = st.selectbox("Segment", ["NSE_EQ","BSE_EQ","IDX_I"], key="cs_live_seg")
+                if live_q and len(live_q) >= 2:
+                    with st.spinner("Searching Dhan instruments..."):
+                        live_res = search_dhan_instrument(live_q, live_seg)
+                    if live_res:
+                        for lr in live_res[:8]:
+                            lc1, lc2 = st.columns([3,1])
+                            with lc1:
+                                st.markdown(f"<div style='font-size:.72rem;color:#e2e8f0;'>{lr['symbol']} <span style='color:#4a6fa5;'>ID:{lr['id']}</span><br><span style='color:#4a6fa5;font-size:.65rem;'>{lr['name']}</span></div>", unsafe_allow_html=True)
+                            with lc2:
+                                if st.button("Load", key=f"live_load_{lr['id']}", use_container_width=True):
+                                    sym_key = lr["symbol"].upper().strip()
+                                    SECURITY_IDS[sym_key] = {
+                                        "id":      lr["id"],
+                                        "segment": live_seg,
+                                        "name":    lr["name"] or sym_key,
+                                        "sector":  "Custom",
+                                    }
+                                    SECTOR_GROUPS.setdefault("Custom", [])
+                                    if sym_key not in SECTOR_GROUPS["Custom"]:
+                                        SECTOR_GROUPS["Custom"].append(sym_key)
+                                    st.session_state.symbol = sym_key
+                                    st.success(f"Loaded {sym_key}"); st.rerun()
+                    else:
+                        st.caption("Not found. Try the manual entry below.")
+
+                st.markdown("<div style='font-size:.65rem;color:#4a6fa5;margin-top:6px;'>Manual entry:</div>", unsafe_allow_html=True)
+                c_sym = st.text_input("Symbol label", placeholder="e.g. ETERNAL", key="cs_sym")
+                c_id  = st.text_input("Security ID", placeholder="e.g. 21866", key="cs_id")
                 c_seg = st.selectbox("Segment", ["NSE_EQ","BSE_EQ","NSE_FNO","IDX_I"], key="cs_seg")
                 if st.button("➕ Add & Load", use_container_width=True, key="cs_add"):
                     if c_sym and c_id:
@@ -1406,7 +1477,7 @@ def show_dashboard():
             MAJORS = {
                 "Indices":   ["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX"],
                 "Large Cap": ["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","LT","BAJFINANCE"],
-                "Popular":   ["ZOMATO","IRCTC","TATAMOTORS","HAL","DMART","TRENT","TITAN"],
+                "Popular":   ["ETERNAL","IRCTC","TATAMOTORS","HAL","DMART","TRENT","TITAN"],
             }
             for grp, gsyms in MAJORS.items():
                 st.markdown(f"<div style='font-size:.63rem;color:#4a6fa5;margin-top:4px;'>{grp}</div>", unsafe_allow_html=True)
@@ -1760,6 +1831,7 @@ def show_dashboard():
                         </div>
                       </div>"""
 
+                # Render signal header card first
                 st.markdown(f"""
                 <div style='background:{opt_bg};border:1.5px solid {opt_border};
                      border-radius:10px;padding:12px;text-align:center;'>
@@ -1769,8 +1841,11 @@ def show_dashboard():
                   <div style='font-size:.68rem;color:#4a6fa5;margin-top:2px;'>
                     Score {score:+d} · {conf} confidence
                   </div>
-                  {fno_action_html}
                 </div>""", unsafe_allow_html=True)
+
+                # Render options action card separately (avoids f-string HTML escaping)
+                if fno_action_html:
+                    st.markdown(fno_action_html, unsafe_allow_html=True)
 
                 # ── Indicator strength rows ───────────────────────────────────
                 rs = " ".join(reas)
