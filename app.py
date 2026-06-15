@@ -222,9 +222,15 @@ DEFAULTS = {
     "active_trades":{},"strategy_config":{},
     "oc_cache":{},"oc_last_fetch":{},"selected_expiry":"",
     # date range picker
-    "date_mode":"Today",          # Today | Last Trading Day | Custom
+    "date_mode":"Today",
     "custom_from": None,
     "custom_to":   None,
+    # trade journal
+    "trade_log": [],
+    # custom stock search
+    "custom_symbol": "",
+    "custom_sec_id": "",
+    "custom_seg":    "NSE_EQ",
 }
 for k,v in DEFAULTS.items():
     if k not in st.session_state:
@@ -507,6 +513,88 @@ def search_stocks(q):
     return [s for s,i in SECURITY_IDS.items()
             if q in s or q in i["name"].upper() or q in i["sector"].upper()]
 
+# Instruments that have NSE F&O option chains
+FNO_ELIGIBLE = {
+    "NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","BANKEX",
+    "RELIANCE","TCS","INFY","WIPRO","HCLTECH","HDFCBANK","ICICIBANK",
+    "SBIN","AXISBANK","KOTAKBANK","BAJFINANCE","BAJAJFINSV","TATAMOTORS",
+    "TATASTEEL","HINDALCO","JSWSTEEL","MARUTI","M&M","SUNPHARMA",
+    "DRREDDY","CIPLA","DIVISLAB","APOLLOHOSP","HINDUNILVR","ITC",
+    "NESTLEIND","TITAN","DLF","LT","NTPC","POWERGRID","COALINDIA",
+    "ONGC","BPCL","GAIL","BHARTIARTL","ADANIPORTS","ADANIGREEN",
+    "TATAPOWER","ZOMATO","IRCTC","HAL","BEL","VEDL",
+}
+
+def has_option_chain(sym):
+    return sym in FNO_ELIGIBLE
+
+# ─── BROKERAGE / P&L CALCULATOR ──────────────────────────────────────────────
+def calc_pnl(entry_price, exit_price, qty, direction, trade_type,
+             entry_brokerage=20.0, exit_brokerage=20.0):
+    """
+    Calculate net P&L after all charges (NSE F&O / Equity).
+    trade_type: 'FNO_INTRADAY' | 'FNO_DELIVERY' | 'EQ_INTRADAY' | 'EQ_DELIVERY'
+    Returns dict with all charge breakdowns.
+    """
+    turnover_entry = entry_price * qty
+    turnover_exit  = exit_price  * qty
+    total_turnover = turnover_entry + turnover_exit
+
+    # Gross P&L
+    if direction == "LONG":
+        gross_pnl = (exit_price - entry_price) * qty
+    else:
+        gross_pnl = (entry_price - exit_price) * qty
+
+    # Brokerage (flat ₹20 per order for discount brokers, capped at 0.03% for equity)
+    brok = entry_brokerage + exit_brokerage
+
+    # STT (Securities Transaction Tax)
+    if "FNO" in trade_type:
+        stt = turnover_exit * 0.000625   # 0.0625% on sell side for options
+    elif "INTRADAY" in trade_type:
+        stt = total_turnover * 0.00025   # 0.025% on buy+sell
+    else:
+        stt = turnover_exit * 0.001      # 0.1% on sell for delivery
+
+    # Exchange transaction charges
+    if "FNO" in trade_type:
+        exc = total_turnover * 0.000053   # NSE F&O: 0.053% of premium turnover
+    else:
+        exc = total_turnover * 0.0000322  # NSE Equity: 0.00322%
+
+    # SEBI charges
+    sebi = total_turnover * 0.000001   # ₹10 per crore
+
+    # GST on (brokerage + exchange + SEBI)
+    gst = (brok + exc + sebi) * 0.18
+
+    # Stamp duty
+    if "FNO" in trade_type:
+        stamp = turnover_entry * 0.00002   # 0.002% on buy
+    elif "INTRADAY" in trade_type:
+        stamp = turnover_entry * 0.00003
+    else:
+        stamp = turnover_entry * 0.00015
+
+    total_charges = brok + stt + exc + sebi + gst + stamp
+    net_pnl       = gross_pnl - total_charges
+    net_pnl_pct   = (net_pnl / turnover_entry * 100) if turnover_entry else 0
+
+    return {
+        "gross_pnl":     round(gross_pnl,     2),
+        "net_pnl":       round(net_pnl,       2),
+        "net_pnl_pct":   round(net_pnl_pct,   3),
+        "brokerage":     round(brok,           2),
+        "stt":           round(stt,            2),
+        "exchange_chrg": round(exc,            2),
+        "sebi":          round(sebi,           2),
+        "gst":           round(gst,            2),
+        "stamp":         round(stamp,          2),
+        "total_charges": round(total_charges,  2),
+        "turnover":      round(total_turnover, 2),
+    }
+
 # ─── CHART ───────────────────────────────────────────────────────────────────
 C = {"g":"#00d4aa","r":"#f87171","a":"#f59e0b","b":"#60a5fa","p":"#a78bfa","gray":"#4a6fa5"}
 
@@ -637,8 +725,38 @@ def show_option_chain_tab(sym, ltp):
     st.markdown("### 📊 Option Chain")
 
     info = SECURITY_IDS.get(sym, {})
-    if info.get("segment") not in ("IDX_I", "NSE_EQ"):
-        st.info("Option chain available for Indices and NSE Equities only.")
+
+    # Check if this instrument supports option chain
+    if not has_option_chain(sym):
+        sym_name = info.get("name", sym)
+        seg      = info.get("segment","")
+        st.markdown(f"""
+        <div style='background:#f59e0b18;border:1.5px solid #f59e0b44;border-radius:12px;
+             padding:20px 24px;margin:12px 0;'>
+          <div style='font-size:1.1rem;font-weight:700;color:#f59e0b;margin-bottom:8px;'>
+            ⚠️ Option Chain Not Available for {sym}
+          </div>
+          <div style='color:#94a3b8;font-size:.85rem;line-height:1.7;'>
+            <b style='color:#e2e8f0;'>{sym_name}</b> ({seg}) is not in the NSE F&O segment.<br>
+            Option chains are only available for <b style='color:#e2e8f0;'>Nifty indices</b> and
+            <b style='color:#e2e8f0;'>F&O-eligible stocks</b> (approx. 180 scrips on NSE).<br><br>
+            You can still:<br>
+            ✅ View full chart analysis and signals for {sym}<br>
+            ✅ Trade the underlying stock from the <b>Portfolio</b> tab<br>
+            ✅ Switch to an F&O instrument (e.g. NIFTY, BANKNIFTY) for option trading
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Show F&O alternatives
+        st.markdown("**🔀 Switch to an F&O instrument:**")
+        fno_quick = ["NIFTY","BANKNIFTY","FINNIFTY","RELIANCE","TCS","HDFCBANK","SBIN","TATAMOTORS"]
+        fc = st.columns(4)
+        for i, fs in enumerate(fno_quick):
+            with fc[i % 4]:
+                if st.button(fs, key=f"oc_alt_{fs}", use_container_width=True):
+                    st.session_state.symbol = fs
+                    st.rerun()
         return
 
     col_exp, col_ref = st.columns([3,1])
@@ -864,7 +982,7 @@ def show_option_chain_tab(sym, ltp):
 # ─── POSITIONS / HOLDINGS TAB ─────────────────────────────────────────────────
 def show_portfolio_tab():
     st.markdown("### 🗂️ Portfolio")
-    t1, t2, t3 = st.tabs(["📋 Positions","📦 Holdings","📜 Orders"])
+    t1, t2, t3, t4 = st.tabs(["📋 Positions","📦 Holdings","📜 Orders","📊 Trade Journal"])
 
     with t1:
         if st.button("🔄 Refresh Positions", key="ref_pos"):
@@ -882,7 +1000,6 @@ def show_portfolio_tab():
                                    .replace("tradingSymbol","Symbol")
                                    .replace("positionType","Pos")
                                    .replace("productType","Product") for c in keep]
-                    # Color P&L
                     st.dataframe(df2, use_container_width=True, hide_index=True)
                     total_unreal = sum(float(p.get("unrealizedProfit",0)) for p in pos)
                     total_real   = sum(float(p.get("realizedProfit",0))   for p in pos)
@@ -928,6 +1045,159 @@ def show_portfolio_tab():
                 st.info("No orders today.")
         else:
             st.caption("Click Refresh to load today's orders.")
+
+    # ── TRADE JOURNAL ─────────────────────────────────────────────────────────
+    with t4:
+        st.markdown("#### 📊 Trade Journal — Net P&L Calculator")
+        st.caption("Every trade closed from the Strategy tab is logged here with full charge breakdown.")
+
+        trade_log = st.session_state.get("trade_log", [])
+
+        # ── Manual trade entry ────────────────────────────────────────────────
+        with st.expander("➕ Log a Trade Manually", expanded=not bool(trade_log)):
+            lc1, lc2, lc3, lc4 = st.columns(4)
+            with lc1:
+                log_sym    = st.text_input("Symbol", value="NIFTY", key="log_sym")
+                log_dir    = st.selectbox("Direction", ["LONG","SHORT"], key="log_dir")
+            with lc2:
+                log_entry  = st.number_input("Entry Price", min_value=0.01, value=100.0, step=0.05, key="log_entry")
+                log_exit   = st.number_input("Exit Price",  min_value=0.01, value=110.0, step=0.05, key="log_exit")
+            with lc3:
+                log_qty    = st.number_input("Quantity", min_value=1, value=75, key="log_qty")
+                log_type   = st.selectbox("Trade Type",
+                                          ["FNO_INTRADAY","FNO_DELIVERY","EQ_INTRADAY","EQ_DELIVERY"],
+                                          key="log_type")
+            with lc4:
+                log_brok   = st.number_input("Brokerage per order (₹)", min_value=0.0, value=20.0, key="log_brok")
+                log_note   = st.text_input("Notes", placeholder="Optional", key="log_note")
+
+            if st.button("📥 Calculate & Log Trade", use_container_width=True, type="primary", key="log_add"):
+                pnl_data = calc_pnl(log_entry, log_exit, log_qty, log_dir, log_type,
+                                    log_brok, log_brok)
+                entry_rec = {
+                    "time":        ist_now().strftime("%d %b %H:%M"),
+                    "symbol":      log_sym.upper(),
+                    "direction":   log_dir,
+                    "qty":         log_qty,
+                    "entry":       log_entry,
+                    "exit":        log_exit,
+                    "type":        log_type,
+                    "note":        log_note,
+                    **pnl_data,
+                }
+                st.session_state.trade_log.insert(0, entry_rec)
+                st.success(f"✅ Logged! Net P&L: ₹{pnl_data['net_pnl']:+,.2f}")
+                st.rerun()
+
+        # ── Summary metrics ───────────────────────────────────────────────────
+        if trade_log:
+            total_net   = sum(t["net_pnl"]       for t in trade_log)
+            total_gross = sum(t["gross_pnl"]      for t in trade_log)
+            total_charg = sum(t["total_charges"]  for t in trade_log)
+            wins        = sum(1 for t in trade_log if t["net_pnl"] > 0)
+            losses      = sum(1 for t in trade_log if t["net_pnl"] <= 0)
+            win_rate    = (wins / len(trade_log) * 100) if trade_log else 0
+            avg_win     = (sum(t["net_pnl"] for t in trade_log if t["net_pnl"]>0) / wins) if wins else 0
+            avg_loss    = (sum(t["net_pnl"] for t in trade_log if t["net_pnl"]<=0) / losses) if losses else 0
+
+            net_col = "#00d4aa" if total_net >= 0 else "#f87171"
+            st.markdown(f"""
+            <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;'>
+              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#4a6fa5;'>Net P&L (after charges)</div>
+                <div style='font-size:1.3rem;font-weight:800;color:{net_col};'>₹{total_net:+,.2f}</div>
+              </div>
+              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#4a6fa5;'>Gross P&L</div>
+                <div style='font-size:1.3rem;font-weight:700;color:#e2e8f0;'>₹{total_gross:+,.2f}</div>
+                <div style='font-size:.65rem;color:#f87171;'>Charges: ₹{total_charg:,.2f}</div>
+              </div>
+              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#4a6fa5;'>Win Rate</div>
+                <div style='font-size:1.3rem;font-weight:700;color:#{'00d4aa' if win_rate>=50 else 'f87171'};'>{win_rate:.0f}%</div>
+                <div style='font-size:.65rem;color:#4a6fa5;'>W:{wins} / L:{losses}</div>
+              </div>
+              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#4a6fa5;'>Avg Win / Loss</div>
+                <div style='font-size:.95rem;font-weight:700;'>
+                  <span style='color:#00d4aa;'>+₹{avg_win:,.0f}</span> /
+                  <span style='color:#f87171;'>₹{avg_loss:,.0f}</span>
+                </div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── Trade cards ───────────────────────────────────────────────────
+            for idx, t in enumerate(trade_log):
+                nc = "#00d4aa" if t["net_pnl"] >= 0 else "#f87171"
+                with st.expander(
+                    f"{'✅' if t['net_pnl']>=0 else '❌'} {t['symbol']} {t['direction']} "
+                    f"· Net ₹{t['net_pnl']:+,.2f} · {t['time']}",
+                    expanded=False
+                ):
+                    tc1, tc2, tc3 = st.columns(3)
+                    with tc1:
+                        st.markdown(f"""
+                        <div style='font-size:.8rem;'>
+                          <div style='color:#4a6fa5;'>Symbol</div>
+                          <div style='color:#e2e8f0;font-weight:700;'>{t['symbol']} · {t['direction']} · {t['qty']} qty</div>
+                          <div style='color:#4a6fa5;margin-top:6px;'>Entry → Exit</div>
+                          <div style='color:#e2e8f0;'>₹{t['entry']:,.2f} → ₹{t['exit']:,.2f}</div>
+                          <div style='color:#4a6fa5;margin-top:6px;'>Type</div>
+                          <div style='color:#e2e8f0;'>{t['type']}</div>
+                          {"<div style='color:#4a6fa5;margin-top:6px;'>Notes</div><div style='color:#e2e8f0;'>" + t.get('note','—') + "</div>" if t.get('note') else ""}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with tc2:
+                        st.markdown(f"""
+                        <div style='font-size:.8rem;'>
+                          <div style='color:#4a6fa5;'>Gross P&L</div>
+                          <div style='font-size:1rem;font-weight:700;color:#e2e8f0;'>₹{t['gross_pnl']:+,.2f}</div>
+                          <div style='color:#4a6fa5;margin-top:8px;'>Charge Breakdown</div>
+                          <div style='color:#94a3b8;'>Brokerage: <b>₹{t['brokerage']:,.2f}</b></div>
+                          <div style='color:#94a3b8;'>STT: <b>₹{t['stt']:,.2f}</b></div>
+                          <div style='color:#94a3b8;'>Exchange: <b>₹{t['exchange_chrg']:,.2f}</b></div>
+                          <div style='color:#94a3b8;'>SEBI: <b>₹{t['sebi']:,.2f}</b></div>
+                          <div style='color:#94a3b8;'>GST: <b>₹{t['gst']:,.2f}</b></div>
+                          <div style='color:#94a3b8;'>Stamp: <b>₹{t['stamp']:,.2f}</b></div>
+                          <div style='color:#f87171;margin-top:4px;'>Total Charges: <b>₹{t['total_charges']:,.2f}</b></div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with tc3:
+                        st.markdown(f"""
+                        <div style='font-size:.8rem;text-align:center;'>
+                          <div style='color:#4a6fa5;margin-bottom:4px;'>NET P&L</div>
+                          <div style='font-size:1.8rem;font-weight:800;color:{nc};'>₹{t['net_pnl']:+,.2f}</div>
+                          <div style='font-size:.85rem;color:{nc};'>{t['net_pnl_pct']:+.3f}%</div>
+                          <div style='color:#4a6fa5;margin-top:10px;font-size:.72rem;'>Turnover</div>
+                          <div style='color:#e2e8f0;'>₹{t['turnover']:,.2f}</div>
+                          <div style='color:#4a6fa5;margin-top:6px;font-size:.72rem;'>Charge %</div>
+                          <div style='color:#f87171;'>
+                            {(t['total_charges']/t['turnover']*100):.3f}% of turnover
+                          </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    if st.button("🗑️ Remove", key=f"del_log_{idx}", type="secondary"):
+                        st.session_state.trade_log.pop(idx)
+                        st.rerun()
+
+            st.divider()
+            jc1, jc2 = st.columns(2)
+            with jc1:
+                if st.button("🗑️ Clear All Trades", type="secondary", use_container_width=True):
+                    st.session_state.trade_log = []
+                    st.rerun()
+            with jc2:
+                # Export as CSV
+                if trade_log:
+                    df_export = pd.DataFrame(trade_log)
+                    csv = df_export.to_csv(index=False)
+                    st.download_button("📥 Export CSV", csv,
+                                       file_name=f"trade_journal_{ist_now().strftime('%Y%m%d')}.csv",
+                                       mime="text/csv", use_container_width=True)
+        else:
+            st.info("No trades logged yet. Close a strategy trade or add one manually above.")
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  LOGIN
@@ -1001,42 +1271,77 @@ def show_dashboard():
         {st.session_state.client_id[:6]}•••• · {len(SECURITY_IDS)} instruments</div>""",
         unsafe_allow_html=True)
 
-        # Search
-        sq = st.text_input("🔍 Search symbol / name / sector",
-                           placeholder="e.g. hdfc, pharma, nifty",
-                           label_visibility="collapsed")
+        # ── INSTRUMENT SELECTOR ──────────────────────────────────────────────
+        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin-bottom:4px;'>🔍 Search Any Stock / Index</div>", unsafe_allow_html=True)
+        sq = st.text_input("Search", placeholder="Symbol, name or sector…",
+                           label_visibility="collapsed", key="sb_search")
         matched = search_stocks(sq)
 
         if sq:
-            st.caption(f"{len(matched)} results")
-            opts = [f"{s} — {SECURITY_IDS[s]['name']}" for s in matched[:40]]
+            n_match = len(matched)
+            st.caption(f"{n_match} match{'es' if n_match!=1 else ''}")
+            opts = [f"{s}  —  {SECURITY_IDS[s]['name']}" for s in matched[:50]]
             if opts:
-                sel = st.selectbox("Pick",opts,label_visibility="collapsed")
-                if st.button("📈 Load", use_container_width=True, type="primary"):
-                    st.session_state.symbol = sel.split(" — ")[0]
-                    st.rerun()
-        else:
-            secs = ["— All —"]+sorted(SECTOR_GROUPS.keys())
-            sec  = st.selectbox("Sector",secs,label_visibility="collapsed")
-            syms = list(SECURITY_IDS.keys()) if sec=="— All —" else SECTOR_GROUPS.get(sec,[])
-            disp = [f"{s} — {SECURITY_IDS[s]['name']}" for s in syms]
-            cur  = f"{sym} — {sym_inf.get('name','')}"
-            idx  = disp.index(cur) if cur in disp else 0
-            pick = st.selectbox("Instrument",disp,index=idx,label_visibility="collapsed")
-            ns   = pick.split(" — ")[0]
-            if ns != sym:
-                st.session_state.symbol = ns
-                st.rerun()
+                sel = st.selectbox("Result", opts, label_visibility="collapsed", key="sb_result")
+                sel_sym = sel.split("  —  ")[0].strip()
+                bc1, bc2 = st.columns([2,1])
+                with bc1:
+                    if st.button("📈 Load", use_container_width=True, type="primary", key="sb_load"):
+                        st.session_state.symbol = sel_sym
+                        st.rerun()
+                with bc2:
+                    oc_ok = has_option_chain(sel_sym)
+                    st.markdown(
+                        f"<div style='font-size:.65rem;padding-top:7px;color:{'#00d4aa' if oc_ok else '#f59e0b'};'>{'✅ F&O' if oc_ok else '⚠️ No OC'}</div>",
+                        unsafe_allow_html=True)
+            else:
+                st.caption("No results.")
 
-        # Quick picks
-        st.markdown("<div style='font-size:.72rem;color:#4a6fa5;margin:6px 0 4px;'>⚡ Quick Pick</div>",unsafe_allow_html=True)
-        quick = ["NIFTY","BANKNIFTY","FINNIFTY","RELIANCE","TCS",
-                 "HDFCBANK","INFY","SBIN","TATAMOTORS","BAJFINANCE"]
-        qc = st.columns(2)
-        for i,q in enumerate(quick):
-            with qc[i%2]:
-                if st.button(q,key=f"qp{q}",use_container_width=True):
-                    st.session_state.symbol=q; st.rerun()
+            with st.expander("🔧 Load any NSE scrip by Security ID"):
+                c_sym = st.text_input("Label", placeholder="e.g. PAYTM", key="cs_sym")
+                c_id  = st.text_input("Security ID", placeholder="e.g. 21865", key="cs_id")
+                c_seg = st.selectbox("Segment", ["NSE_EQ","BSE_EQ","NSE_FNO","IDX_I"], key="cs_seg")
+                if st.button("➕ Add & Load", use_container_width=True, key="cs_add"):
+                    if c_sym and c_id:
+                        sym_key = c_sym.upper().strip()
+                        SECURITY_IDS[sym_key] = {"id":c_id.strip(),"segment":c_seg,
+                                                  "name":sym_key,"sector":"Custom"}
+                        SECTOR_GROUPS.setdefault("Custom",[])
+                        if sym_key not in SECTOR_GROUPS["Custom"]:
+                            SECTOR_GROUPS["Custom"].append(sym_key)
+                        st.session_state.symbol = sym_key
+                        st.success(f"Added {sym_key}"); st.rerun()
+                    else:
+                        st.error("Both fields required")
+        else:
+            # Pinned majors
+            st.markdown("<div style='font-size:.72rem;color:#4a6fa5;margin-bottom:3px;'>📌 Major Instruments</div>", unsafe_allow_html=True)
+            MAJORS = {
+                "Indices":   ["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX"],
+                "Large Cap": ["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","LT","BAJFINANCE"],
+                "Popular":   ["ZOMATO","IRCTC","TATAMOTORS","HAL","DMART","TRENT","TITAN"],
+            }
+            for grp, gsyms in MAJORS.items():
+                st.markdown(f"<div style='font-size:.63rem;color:#4a6fa5;margin-top:4px;'>{grp}</div>", unsafe_allow_html=True)
+                gc = st.columns(3)
+                for i, gs in enumerate(gsyms):
+                    with gc[i % 3]:
+                        is_cur = gs == sym
+                        if st.button(gs, key=f"maj_{gs}", use_container_width=True,
+                                     type="primary" if is_cur else "secondary"):
+                            st.session_state.symbol = gs; st.rerun()
+
+            st.markdown("<div style='font-size:.72rem;color:#4a6fa5;margin:6px 0 3px;'>🗂 Browse by Sector</div>", unsafe_allow_html=True)
+            secs2 = ["— Pick sector —"] + sorted(SECTOR_GROUPS.keys())
+            sec2  = st.selectbox("Sector", secs2, label_visibility="collapsed", key="sec_browse")
+            if sec2 != "— Pick sector —":
+                syms2 = SECTOR_GROUPS.get(sec2, [])
+                disp2 = [f"{s}  —  {SECURITY_IDS[s]['name']}" for s in syms2]
+                if disp2:
+                    picked2 = st.selectbox("Stock", disp2, label_visibility="collapsed", key="sec_pick")
+                    if st.button("Load →", use_container_width=True, key="sec_load"):
+                        st.session_state.symbol = picked2.split("  —  ")[0].strip()
+                        st.rerun()
 
         st.divider()
 
@@ -1320,6 +1625,45 @@ def show_dashboard():
 
 
 # ─── STRATEGY TAB ────────────────────────────────────────────────────────────
+def _log_closed_trade(active_trade, sym, pnl_pct, exit_reason):
+    """Auto-log a closed strategy trade to the trade journal with full charge calc."""
+    if not active_trade:
+        return
+    entry    = active_trade.get("entry_price", 0)
+    direction = active_trade.get("direction", "LONG")
+    opt_type  = active_trade.get("option_type", "")
+    strategy  = active_trade.get("strategy", "")
+    lot       = LOT_SIZES.get(sym, 1)
+    qty       = lot  # default 1 lot
+
+    if not entry:
+        return
+
+    # Reconstruct approximate exit price from pnl_pct
+    if direction == "LONG":
+        exit_price = round(entry * (1 + pnl_pct / 100), 2)
+    else:
+        exit_price = round(entry * (1 - pnl_pct / 100), 2)
+
+    # Determine trade type
+    trade_type = "FNO_INTRADAY" if opt_type in ("CE","PE") else "EQ_INTRADAY"
+
+    pnl_data = calc_pnl(entry, exit_price, qty, direction, trade_type)
+    rec = {
+        "time":      ist_now().strftime("%d %b %H:%M"),
+        "symbol":    f"{sym} {opt_type}" if opt_type else sym,
+        "direction": direction,
+        "qty":       qty,
+        "entry":     entry,
+        "exit":      exit_price,
+        "type":      trade_type,
+        "note":      f"{strategy} · {exit_reason}",
+        **pnl_data,
+    }
+    st.session_state.trade_log.insert(0, rec)
+    add_alert("INFO", f"Journal: {rec['symbol']} Net ₹{pnl_data['net_pnl']:+,.2f}")
+
+
 def show_strategy_tab(result, sym, tf_lbl):
     if not result:
         st.info("Load chart data first.")
@@ -1405,7 +1749,8 @@ def show_strategy_tab(result, sym, tf_lbl):
                         st.markdown(f"<div style='background:{mc3}22;border:1px solid {mc3}55;border-radius:6px;padding:8px;color:{mc3};font-weight:700;'>🎯 {mile.replace('_',' ')}</div>",unsafe_allow_html=True)
                 for r in (setup.hold_reasons or []): st.markdown(f"⏸ {r}")
                 if setup.in_trade and st.button("🚪 Close",key=f"cls_{name}"):
-                    st.session_state.active_trades.pop(name,None)
+                    at = st.session_state.active_trades.pop(name, {})
+                    _log_closed_trade(at, sym, setup.current_pnl_pct, "Manual exit")
                     add_alert("INFO",f"{name}: Manual exit"); st.success("Closed"); st.rerun()
 
             elif act in ("EXIT_LONG","EXIT_SHORT"):
@@ -1413,7 +1758,8 @@ def show_strategy_tab(result, sym, tf_lbl):
                 st.markdown(f"<div style='background:#60a5fa18;border:1px solid #60a5fa44;border-radius:8px;padding:10px;'><span style='color:#60a5fa;font-weight:700;font-size:1.1rem;'>EXIT</span><span style='color:{pc};margin-left:10px;'>{pnl:+.2f}%</span></div>",unsafe_allow_html=True)
                 for r in (setup.exit_reasons or []): st.markdown(f"🔵 {r}")
                 if st.button("✅ Confirm Exit",key=f"ext_{name}"):
-                    st.session_state.active_trades.pop(name,None)
+                    at = st.session_state.active_trades.pop(name, {})
+                    _log_closed_trade(at, sym, pnl, "Signal Exit")
                     add_alert("INFO",f"{name}: EXIT {pnl:+.2f}%"); st.rerun()
 
             elif act == "STOP_LOSS":
@@ -1421,7 +1767,8 @@ def show_strategy_tab(result, sym, tf_lbl):
                 st.markdown(f"<div style='background:#ef444420;border:2px solid #ef4444;border-radius:8px;padding:12px;'><div style='font-size:1.2rem;font-weight:800;color:#ef4444;'>🚨 STOP LOSS HIT</div><div style='color:#f87171;font-size:.85rem;'>Loss: {pnl:+.2f}%</div></div>",unsafe_allow_html=True)
                 for r in (setup.sl_reasons or []): st.error(r)
                 if st.button("🚨 Confirm SL Exit",key=f"sl_{name}",type="primary"):
-                    st.session_state.active_trades.pop(name,None)
+                    at = st.session_state.active_trades.pop(name, {})
+                    _log_closed_trade(at, sym, pnl, "Stop Loss")
                     add_alert("SELL",f"{name}: SL {pnl:+.2f}%"); st.rerun()
             else:
                 for r in (setup.hold_reasons or ["No setup — stand aside"]): st.caption(f"⏳ {r}")
