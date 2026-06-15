@@ -284,64 +284,70 @@ def verify_credentials(client_id, access_token):
     except Exception as e:                   return False, str(e)
 
 def last_trading_day():
-    """Return the most recent weekday (skips Saturday/Sunday)."""
+    """Return the most recent completed trading weekday."""
     d = datetime.now().date() - timedelta(days=1)
-    while d.weekday() >= 5:   # 5=Sat, 6=Sun
+    while d.weekday() >= 5:
         d -= timedelta(days=1)
     return d
 
 def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15"):
     """
-    Returns (from_str, to_str) suitable for Dhan API.
-    Intraday endpoints need datetime strings; daily needs date strings.
+    Returns (from_str, to_str) for Dhan API.
+    IMPORTANT: Dhan intraday toDate is NON-INCLUSIVE — must be day AFTER last desired day.
+    To fetch today's candles: fromDate=today, toDate=tomorrow.
     """
-    today = datetime.now().date()
-    is_intraday = interval in ("1","5","15","25","60")
+    today    = datetime.now().date()
+    tomorrow = today + timedelta(days=1)
+    is_intraday = interval in ("1", "5", "15", "25", "60")
 
     if date_mode == "Today":
         fd = today
-        td = today
+        td = tomorrow          # non-inclusive: must be day after
     elif date_mode == "Last Trading Day":
-        fd = last_trading_day()
-        td = fd
+        ltday = last_trading_day()
+        fd = ltday
+        td = today             # exclusive upper bound gives yesterday only
     elif date_mode == "This Week":
-        # Monday to today
         fd = today - timedelta(days=today.weekday())
-        td = today
+        td = tomorrow
     elif date_mode == "Last 5 Days":
-        fd = today - timedelta(days=7)   # gives ~5 trading days
-        td = today
+        fd = today - timedelta(days=7)
+        td = tomorrow
     elif date_mode == "Last 1 Month":
         fd = today - timedelta(days=30)
-        td = today
+        td = tomorrow
     elif date_mode == "Last 3 Months":
         fd = today - timedelta(days=90)
-        td = today
+        td = tomorrow
     elif date_mode == "Last 6 Months":
         fd = today - timedelta(days=180)
-        td = today
+        td = tomorrow
     elif date_mode == "Last 1 Year":
         fd = today - timedelta(days=365)
-        td = today
+        td = tomorrow
     elif date_mode == "Custom" and custom_from and custom_to:
         fd = custom_from
-        td = custom_to
+        td = custom_to + timedelta(days=1)
     else:
         fd = today - timedelta(days=5)
-        td = today
+        td = tomorrow
 
     if is_intraday:
-        # Intraday API needs full datetime strings
         return (f"{fd} 09:15:00", f"{td} 15:30:00")
     else:
         return (str(fd), str(td))
+
+def _instrument_type(segment):
+    """Map Dhan segment to instrument type string."""
+    return "INDEX" if segment == "IDX_I" else "EQUITY"
 
 def fetch_candles(symbol, interval="15", date_mode="Today",
                   custom_from=None, custom_to=None):
     info = SECURITY_IDS.get(symbol)
     if not info: return None
 
-    instrument = "INDEX" if info["segment"] == "IDX_I" else "EQUITY"
+    seg        = info["segment"]
+    instrument = _instrument_type(seg)
     is_daily   = interval == "1D"
 
     from_str, to_str = resolve_date_range(
@@ -351,30 +357,48 @@ def fetch_candles(symbol, interval="15", date_mode="Today",
     if is_daily:
         body = {
             "securityId":      info["id"],
-            "exchangeSegment": info["segment"],
+            "exchangeSegment": seg,
             "instrument":      instrument,
             "expiryCode":      0,
             "oi":              False,
             "fromDate":        from_str,
             "toDate":          to_str,
         }
-        return dhan_post("/charts/historical", body)
+        raw = dhan_post("/charts/historical", body)
     else:
         body = {
             "securityId":      info["id"],
-            "exchangeSegment": info["segment"],
+            "exchangeSegment": seg,
             "instrument":      instrument,
             "interval":        interval,
             "oi":              False,
             "fromDate":        from_str,
             "toDate":          to_str,
         }
-        return dhan_post("/charts/intraday", body)
+        raw = dhan_post("/charts/intraday", body)
+
+    # Normalise: Dhan returns lists under "open","high","low","close","volume","timestamp"
+    # but sometimes wraps in "data" key — handle both
+    if isinstance(raw, dict) and "data" in raw and isinstance(raw["data"], dict):
+        raw = raw["data"]
+
+    # Validate we actually got candle arrays
+    if isinstance(raw, dict) and not raw.get("error"):
+        close_arr = raw.get("close", [])
+        if isinstance(close_arr, list) and len(close_arr) == 0:
+            raw = {"error": f"No candles returned for {symbol} ({date_mode}). "
+                             f"Market may be closed or data subscription required. "
+                             f"API sent: fromDate={from_str}, toDate={to_str}"}
+    return raw
 
 def fetch_quote(symbol):
+    """Fetch LTP for a symbol. Handles both index and equity segments."""
     info = SECURITY_IDS.get(symbol)
     if not info: return None
-    return dhan_post("/marketfeed/quote", {info["segment"]:[info["id"]]})
+    seg = info["segment"]
+    sid = info["id"]
+    # Dhan marketfeed/quote accepts {segment: [securityId, ...]}
+    return dhan_post("/marketfeed/quote", {seg: [sid]})
 
 def fetch_funds():
     return dhan_get("/fundlimit")
@@ -514,19 +538,81 @@ def search_stocks(q):
             if q in s or q in i["name"].upper() or q in i["sector"].upper()]
 
 # Instruments that have NSE F&O option chains
-FNO_ELIGIBLE = {
-    "NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","BANKEX",
-    "RELIANCE","TCS","INFY","WIPRO","HCLTECH","HDFCBANK","ICICIBANK",
-    "SBIN","AXISBANK","KOTAKBANK","BAJFINANCE","BAJAJFINSV","TATAMOTORS",
-    "TATASTEEL","HINDALCO","JSWSTEEL","MARUTI","M&M","SUNPHARMA",
-    "DRREDDY","CIPLA","DIVISLAB","APOLLOHOSP","HINDUNILVR","ITC",
-    "NESTLEIND","TITAN","DLF","LT","NTPC","POWERGRID","COALINDIA",
-    "ONGC","BPCL","GAIL","BHARTIARTL","ADANIPORTS","ADANIGREEN",
-    "TATAPOWER","ZOMATO","IRCTC","HAL","BEL","VEDL",
+# ── Complete NSE F&O eligible list (all ~180 active F&O stocks + indices) ──
+# Source: NSE F&O segment as of 2025. Indices always have OC.
+# For any NSE_EQ stock, we attempt the option chain and show a clear message
+# only if Dhan returns no data — avoiding false negatives from a hardcoded list.
+
+# Indices always have option chains
+FNO_INDICES = {"NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","BANKEX"}
+
+# Complete NSE F&O stock list (as of 2025 — ~180 stocks)
+FNO_STOCKS = {
+    # Banking & Finance
+    "HDFCBANK","ICICIBANK","SBIN","AXISBANK","KOTAKBANK","INDUSINDBK",
+    "BANDHANBNK","FEDERALBNK","IDFCFIRSTB","PNB","CANBK","BANKBARODA",
+    "BAJFINANCE","BAJAJFINSV","HDFCLIFE","SBILIFE","ICICIGI","MUTHOOTFIN",
+    "CHOLAFIN","MANAPPURAM","LICHSGFIN","M&MFIN","SHRIRAMFIN","ABCAPITAL",
+    # IT
+    "TCS","INFY","WIPRO","HCLTECH","TECHM","LTIM","MPHASIS","PERSISTENT",
+    "COFORGE","OFSS","LTTS",
+    # Oil & Gas / Energy
+    "RELIANCE","ONGC","IOC","BPCL","HINDPETRO","GAIL","PETRONET","MGL","IGL",
+    "POWERGRID","NTPC","ADANIGREEN","TATAPOWER","TORNTPOWER","CESC","ADANIPORTS",
+    # Auto
+    "MARUTI","TATAMOTORS","M&M","BAJAJ-AUTO","HEROMOTOCO","EICHERMOT",
+    "TVSMOTOR","ASHOKLEY","BOSCHLTD","MOTHERSON","BALKRISIND","MRF",
+    # Pharma & Healthcare
+    "SUNPHARMA","DRREDDY","CIPLA","DIVISLAB","APOLLOHOSP","TORNTPHARM",
+    "LUPIN","AUROPHARMA","ALKEM","BIOCON","GLENMARK","IPCALAB","LALPATHLAB",
+    # FMCG
+    "HINDUNILVR","ITC","NESTLEIND","BRITANNIA","DABUR","GODREJCP","MARICO",
+    "COLPAL","TATACONSUM","EMAMILTD","UBL","MCDOWELL-N","RADICO",
+    # Metals & Mining
+    "TATASTEEL","JSWSTEEL","HINDALCO","VEDL","SAIL","COALINDIA","NMDC",
+    "NATIONALUM","HINDCOPPER","WELCORP","JINDALSTEL",
+    # Cement & Infra
+    "ULTRACEMCO","SHREECEM","AMBUJACEM","ACC","DALMIACEM","LT","ADANIENT",
+    "JSWINFRA","IRB",
+    # Telecom
+    "BHARTIARTL","INDUSTOWER","IDEA",
+    # Consumer & Retail
+    "TITAN","TRENT","DMART","NYKAA","ZOMATO","PAYTM","IRCTC","VBL",
+    "PAGEIND","ABFRL","VEDANT",
+    # Capital Goods & Defence
+    "SIEMENS","ABB","HAVELLS","CUMMINSIND","HAL","BEL","BHEL","COCHINSHIP",
+    "GRINDWELL","THERMAX","BDL","BEML","MAZAGON",
+    # Real Estate
+    "DLF","GODREJPROP","OBEROIRLTY","PRESTIGE","BRIGADE","SOBHA","PHOENIXLTD",
+    # Chemicals
+    "PIDILITIND","SRF","AARTIIND","DEEPAKNITRITE","TATACHEM","GNFC","ALKYLAMINE",
+    # IT/Media/Others
+    "ZEEL","SUNTV","PVR","INOXWIND","SUZLON","RECLTD","PFC","IRFC",
+    "HUDCO","RVNL","RAILTEL","NBCC","TITAGARH",
 }
 
+FNO_ELIGIBLE = FNO_INDICES | FNO_STOCKS
+
 def has_option_chain(sym):
-    return sym in FNO_ELIGIBLE
+    """
+    Returns True if this symbol is F&O eligible.
+    For IDX_I segment: always True.
+    For NSE_EQ: check against comprehensive F&O list.
+    For unknown/custom: attempt anyway (try-based approach).
+    """
+    info = SECURITY_IDS.get(sym, {})
+    seg  = info.get("segment", "")
+    # Indices always have OC
+    if seg == "IDX_I":
+        return True
+    # Known F&O stocks
+    if sym in FNO_ELIGIBLE:
+        return True
+    # For any NSE_EQ stock not in our list, still attempt —
+    # Dhan will return empty data if not eligible, and we show proper message then
+    if seg == "NSE_EQ":
+        return True   # attempt and let API decide
+    return False
 
 # ─── BROKERAGE / P&L CALCULATOR ──────────────────────────────────────────────
 def calc_pnl(entry_price, exit_price, qty, direction, trade_type,
@@ -726,37 +812,10 @@ def show_option_chain_tab(sym, ltp):
 
     info = SECURITY_IDS.get(sym, {})
 
-    # Check if this instrument supports option chain
-    if not has_option_chain(sym):
-        sym_name = info.get("name", sym)
-        seg      = info.get("segment","")
-        st.markdown(f"""
-        <div style='background:#f59e0b18;border:1.5px solid #f59e0b44;border-radius:12px;
-             padding:20px 24px;margin:12px 0;'>
-          <div style='font-size:1.1rem;font-weight:700;color:#f59e0b;margin-bottom:8px;'>
-            ⚠️ Option Chain Not Available for {sym}
-          </div>
-          <div style='color:#94a3b8;font-size:.85rem;line-height:1.7;'>
-            <b style='color:#e2e8f0;'>{sym_name}</b> ({seg}) is not in the NSE F&O segment.<br>
-            Option chains are only available for <b style='color:#e2e8f0;'>Nifty indices</b> and
-            <b style='color:#e2e8f0;'>F&O-eligible stocks</b> (approx. 180 scrips on NSE).<br><br>
-            You can still:<br>
-            ✅ View full chart analysis and signals for {sym}<br>
-            ✅ Trade the underlying stock from the <b>Portfolio</b> tab<br>
-            ✅ Switch to an F&O instrument (e.g. NIFTY, BANKNIFTY) for option trading
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Show F&O alternatives
-        st.markdown("**🔀 Switch to an F&O instrument:**")
-        fno_quick = ["NIFTY","BANKNIFTY","FINNIFTY","RELIANCE","TCS","HDFCBANK","SBIN","TATAMOTORS"]
-        fc = st.columns(4)
-        for i, fs in enumerate(fno_quick):
-            with fc[i % 4]:
-                if st.button(fs, key=f"oc_alt_{fs}", use_container_width=True):
-                    st.session_state.symbol = fs
-                    st.rerun()
+    # Only hard-block non-equity non-index segments (BSE_EQ custom scrips etc.)
+    seg = info.get("segment", "")
+    if seg not in ("IDX_I", "NSE_EQ", "BSE_EQ", "NSE_FNO"):
+        st.info(f"Option chain not supported for segment: {seg}")
         return
 
     col_exp, col_ref = st.columns([3,1])
@@ -788,7 +847,40 @@ def show_option_chain_tab(sym, ltp):
             return
 
     if not rows:
-        st.warning("No option chain data. Ensure Data API subscription is active.")
+        sym_name = info.get("name", sym)
+        seg_disp = info.get("segment", "")
+        is_likely_fno = sym in FNO_ELIGIBLE
+        if is_likely_fno:
+            st.warning(
+                f"No option chain data returned for **{sym}**. "
+                "This usually means: (1) Data API subscription not active — "
+                "subscribe at api.dhan.co for ₹499/mo, or "
+                "(2) Market is closed / outside trading hours — try during 9:15–15:30 IST."
+            )
+        else:
+            st.markdown(f"""
+            <div style='background:#f59e0b18;border:1.5px solid #f59e0b44;border-radius:12px;
+                 padding:18px 22px;margin:8px 0;'>
+              <div style='font-size:1rem;font-weight:700;color:#f59e0b;margin-bottom:6px;'>
+                ⚠️ Option Chain Not Available for {sym}
+              </div>
+              <div style='color:#94a3b8;font-size:.83rem;line-height:1.8;'>
+                <b style='color:#e2e8f0;'>{sym_name}</b> ({seg_disp}) does not appear to be in the NSE F&O segment,
+                or no active expiries were found.<br>
+                Option chains exist only for indices and ~180 F&O-eligible stocks on NSE.<br><br>
+                You can still use the <b style='color:#e2e8f0;'>📈 Chart & Analysis</b> and
+                <b style='color:#e2e8f0;'>🎯 Strategies</b> tabs for full technical analysis of {sym}.
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("**Switch to an F&O instrument:**")
+            fno_q = ["NIFTY","BANKNIFTY","FINNIFTY","TRENT","TITAN","RELIANCE","TCS","HDFCBANK"]
+            fc2 = st.columns(4)
+            for i2, fs2 in enumerate(fno_q):
+                with fc2[i2 % 4]:
+                    if st.button(fs2, key=f"oc_sw_{fs2}", use_container_width=True):
+                        st.session_state.symbol = fs2
+                        st.rerun()
         return
 
     spot = chain_ltp or ltp
@@ -1443,21 +1535,29 @@ def show_dashboard():
     </div>""", unsafe_allow_html=True)
 
     # ── QUOTES ───────────────────────────────────────────────────────────────
+    def _extract_ltp(quote_resp, segment, sec_id):
+        """Extract LTP from Dhan marketfeed/quote response safely."""
+        if not quote_resp or quote_resp.get("error"):
+            return 0.0, 0.0, 0.0
+        # Dhan response: {segment: {securityId: {ltp, previousClosePrice, ...}}}
+        seg_data = quote_resp.get(segment, {})
+        q = seg_data.get(sec_id, seg_data.get(str(sec_id), {}))
+        ltp_val  = float(q.get("ltp", 0))
+        prev_val = float(q.get("previousClosePrice", ltp_val) or ltp_val)
+        chg_val  = ltp_val - prev_val
+        pct_val  = (chg_val / prev_val * 100) if prev_val else 0.0
+        return ltp_val, chg_val, pct_val
+
     quote = fetch_quote(sym)
-    ltp=chg=pct=0.0
-    if quote and not quote.get("error"):
-        seg=SECURITY_IDS[sym]["segment"]; sid=SECURITY_IDS[sym]["id"]
-        q=(quote.get(seg) or {}).get(sid, {})
-        ltp=q.get("ltp",0); prev=q.get("previousClosePrice",ltp)
-        chg=ltp-prev; pct=(chg/prev*100) if prev else 0
+    ltp, chg, pct = _extract_ltp(quote,
+                                  SECURITY_IDS[sym]["segment"],
+                                  SECURITY_IDS[sym]["id"])
 
     mc=st.columns(6)
     mc[0].metric(sym, f"₹{ltp:,.2f}", f"{chg:+.2f} ({pct:+.2f}%)")
-    for i,(s,sid,seg) in enumerate([("NIFTY","13","IDX_I"),("BANKNIFTY","25","IDX_I")],1):
+    for i,(s,_sid,_seg) in enumerate([("NIFTY","13","IDX_I"),("BANKNIFTY","25","IDX_I")],1):
         q2 = fetch_quote(s) if s!=sym else quote
-        v=0
-        if q2 and not q2.get("error"):
-            v=(q2.get(seg) or {}).get(sid,{}).get("ltp",0)
+        v,_,_ = _extract_ltp(q2, _seg, _sid)
         mc[i].metric(s, f"₹{v:,.2f}")
     mc[3].metric("Lot Size", LOT_SIZES.get(sym,"—"))
     mc[4].metric("Interval", tf_lbl)
@@ -1486,18 +1586,40 @@ def show_dashboard():
     if need_fetch:
         with st.spinner(f"Fetching {sym} {tf_lbl} · {date_mode}..."):
             raw = fetch_candles(sym, interval, date_mode, custom_from, custom_to)
-        if raw and not raw.get("error") and raw.get("close"):
-            result = analyse(raw)
-            result["symbol"] = sym
-            st.session_state.analysis_cache[ck] = result
-            st.session_state.last_fetch[ck]     = time.time()
-            sig = result.get("signal",{})
-            if sig.get("type") in ("BUY","SELL"):
-                pats=sig.get("patterns",[])
-                add_alert(sig["type"],f"{sym} {pats[0]['pattern'] if pats else sig.get('reasons',[''])[0]} ({tf_lbl})")
+
+        # Check: raw must be dict, no error, and close array must be non-empty
+        close_arr  = (raw or {}).get("close", [])
+        has_data   = (isinstance(raw, dict) and
+                      not raw.get("error") and
+                      isinstance(close_arr, list) and
+                      len(close_arr) >= 5)
+
+        if has_data:
+            try:
+                result = analyse(raw)
+                result["symbol"] = sym
+                st.session_state.analysis_cache[ck] = result
+                st.session_state.last_fetch[ck]     = time.time()
+                sig = result.get("signal", {})
+                if sig.get("type") in ("BUY", "SELL"):
+                    pats = sig.get("patterns", [])
+                    add_alert(sig["type"],
+                              f"{sym} {pats[0]['pattern'] if pats else sig.get('reasons',[''])[0]} ({tf_lbl})")
+            except Exception as e:
+                st.error(f"⚠️ Analysis error: {e}")
         else:
-            err = (raw or {}).get("error","No candle data returned")
-            st.error(f"⚠️ {err}")
+            err = (raw or {}).get("error", "")
+            if err:
+                st.error(f"⚠️ {err}")
+            else:
+                from_disp, to_disp = resolve_date_range(date_mode, custom_from, custom_to, interval)
+                st.error(
+                    f"⚠️ No candle data for {sym} ({date_mode} · {tf_lbl}). "
+                    f"Range: {from_disp} to {to_disp}. "
+                    "Possible reasons: market closed for this period, "
+                    "Data API subscription required, or Security ID mismatch. "
+                    "Try Last 5 Days or Last Trading Day."
+                )
         result = st.session_state.analysis_cache.get(ck)
     else:
         result = st.session_state.analysis_cache.get(ck)
