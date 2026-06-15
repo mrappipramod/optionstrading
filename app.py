@@ -221,6 +221,10 @@ DEFAULTS = {
     "alerts":[],"analysis_cache":{},"last_fetch":{},
     "active_trades":{},"strategy_config":{},
     "oc_cache":{},"oc_last_fetch":{},"selected_expiry":"",
+    # date range picker
+    "date_mode":"Today",          # Today | Last Trading Day | Custom
+    "custom_from": None,
+    "custom_to":   None,
 }
 for k,v in DEFAULTS.items():
     if k not in st.session_state:
@@ -273,21 +277,93 @@ def verify_credentials(client_id, access_token):
     except requests.exceptions.ConnectionError: return False, "Cannot reach Dhan API"
     except Exception as e:                   return False, str(e)
 
-def fetch_candles(symbol, interval="15"):
+def last_trading_day():
+    """Return the most recent weekday (skips Saturday/Sunday)."""
+    d = datetime.now().date() - timedelta(days=1)
+    while d.weekday() >= 5:   # 5=Sat, 6=Sun
+        d -= timedelta(days=1)
+    return d
+
+def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15"):
+    """
+    Returns (from_str, to_str) suitable for Dhan API.
+    Intraday endpoints need datetime strings; daily needs date strings.
+    """
+    today = datetime.now().date()
+    is_intraday = interval in ("1","5","15","25","60")
+
+    if date_mode == "Today":
+        fd = today
+        td = today
+    elif date_mode == "Last Trading Day":
+        fd = last_trading_day()
+        td = fd
+    elif date_mode == "This Week":
+        # Monday to today
+        fd = today - timedelta(days=today.weekday())
+        td = today
+    elif date_mode == "Last 5 Days":
+        fd = today - timedelta(days=7)   # gives ~5 trading days
+        td = today
+    elif date_mode == "Last 1 Month":
+        fd = today - timedelta(days=30)
+        td = today
+    elif date_mode == "Last 3 Months":
+        fd = today - timedelta(days=90)
+        td = today
+    elif date_mode == "Last 6 Months":
+        fd = today - timedelta(days=180)
+        td = today
+    elif date_mode == "Last 1 Year":
+        fd = today - timedelta(days=365)
+        td = today
+    elif date_mode == "Custom" and custom_from and custom_to:
+        fd = custom_from
+        td = custom_to
+    else:
+        fd = today - timedelta(days=5)
+        td = today
+
+    if is_intraday:
+        # Intraday API needs full datetime strings
+        return (f"{fd} 09:15:00", f"{td} 15:30:00")
+    else:
+        return (str(fd), str(td))
+
+def fetch_candles(symbol, interval="15", date_mode="Today",
+                  custom_from=None, custom_to=None):
     info = SECURITY_IDS.get(symbol)
     if not info: return None
-    from_date = (datetime.now()-timedelta(days=5)).strftime("%Y-%m-%d")
-    to_date   = datetime.now().strftime("%Y-%m-%d")
-    body = {
-        "securityId":      info["id"],
-        "exchangeSegment": info["segment"],
-        "instrument":      "INDEX" if info["segment"]=="IDX_I" else "EQUITY",
-        "interval":        interval,
-        "oi":              False,
-        "fromDate":        from_date,
-        "toDate":          to_date,
-    }
-    return dhan_post("/charts/intraday", body)
+
+    instrument = "INDEX" if info["segment"] == "IDX_I" else "EQUITY"
+    is_daily   = interval == "1D"
+
+    from_str, to_str = resolve_date_range(
+        date_mode, custom_from, custom_to, interval
+    )
+
+    if is_daily:
+        body = {
+            "securityId":      info["id"],
+            "exchangeSegment": info["segment"],
+            "instrument":      instrument,
+            "expiryCode":      0,
+            "oi":              False,
+            "fromDate":        from_str,
+            "toDate":          to_str,
+        }
+        return dhan_post("/charts/historical", body)
+    else:
+        body = {
+            "securityId":      info["id"],
+            "exchangeSegment": info["segment"],
+            "instrument":      instrument,
+            "interval":        interval,
+            "oi":              False,
+            "fromDate":        from_str,
+            "toDate":          to_str,
+        }
+        return dhan_post("/charts/intraday", body)
 
 def fetch_quote(symbol):
     info = SECURITY_IDS.get(symbol)
@@ -401,10 +477,29 @@ def add_alert(atype, text):
     if len(st.session_state.alerts) > 12:
         st.session_state.alerts.pop()
 
-def is_market_open():
-    now = datetime.now()
+def ist_now():
+    """Current time in IST (UTC+5:30)."""
+    return datetime.utcnow() + timedelta(hours=5, minutes=30)
+
+def market_status():
+    """Returns ('OPEN'|'CLOSED'|'PRE-OPEN', color, emoji)."""
+    now = ist_now()
     h, m = now.hour, now.minute
-    return (h == 9 and m >= 15) or (10 <= h <= 14) or (h == 15 and m == 0)
+    total_min = h * 60 + m
+    day = now.weekday()   # 0=Mon … 6=Sun
+    if day >= 5:
+        return "CLOSED (Weekend)", "#f87171", "🔴"
+    # Pre-open session 09:00–09:15
+    if 9*60 <= total_min < 9*60+15:
+        return "PRE-OPEN", "#f59e0b", "🟡"
+    # Regular session 09:15–15:30
+    if 9*60+15 <= total_min <= 15*60+30:
+        return "OPEN", "#00d4aa", "🟢"
+    return "CLOSED", "#f87171", "🔴"
+
+def is_market_open():
+    status,_,_ = market_status()
+    return status == "OPEN"
 
 def search_stocks(q):
     q = q.upper().strip()
@@ -508,15 +603,36 @@ def build_chart(candles, candle_signals, indicators, show_ema, show_vwap, show_b
                     bgcolor="rgba(0,0,0,0)",font=dict(size=9)),
         margin=dict(l=0,r=40,t=8,b=0),
     )
+    # TradingView-style range selector on x-axis
+    fig.update_xaxes(
+        rangeselector=dict(
+            buttons=[
+                dict(count=30,  label="30m",  step="minute", stepmode="backward"),
+                dict(count=1,   label="1H",   step="hour",   stepmode="backward"),
+                dict(count=3,   label="3H",   step="hour",   stepmode="backward"),
+                dict(count=1,   label="1D",   step="day",    stepmode="backward"),
+                dict(count=5,   label="5D",   step="day",    stepmode="backward"),
+                dict(count=1,   label="1M",   step="month",  stepmode="backward"),
+                dict(step="all",label="All"),
+            ],
+            bgcolor="#0d1525",
+            activecolor="#1e3050",
+            bordercolor="#1e3050",
+            borderwidth=1,
+            font=dict(color="#94a3b8", size=10),
+            x=0, y=1.02,
+        ),
+        gridcolor="#1e3050",gridwidth=0.4,
+        tickfont=dict(color="#4a6fa5",size=9),showticklabels=True,
+    )
     for i in range(1,4):
         ax = "yaxis" if i==1 else f"yaxis{i}"
-        fig.update_layout(**{ax:dict(gridcolor="#1e3050",gridwidth=0.4,
-            zerolinecolor="#1e3050",tickfont=dict(color="#4a6fa5",size=9))})
-    fig.update_xaxes(gridcolor="#1e3050",gridwidth=0.4,
-        tickfont=dict(color="#4a6fa5",size=9),showticklabels=True)
+        fig.update_layout(**{ax:dict(
+            gridcolor="#1e3050",gridwidth=0.4,
+            zerolinecolor="#1e3050",
+            tickfont=dict(color="#4a6fa5",size=9),
+        )})
     return fig
-
-# ─── OPTION CHAIN DISPLAY ────────────────────────────────────────────────────
 def show_option_chain_tab(sym, ltp):
     st.markdown("### 📊 Option Chain")
 
@@ -923,13 +1039,68 @@ def show_dashboard():
                     st.session_state.symbol=q; st.rerun()
 
         st.divider()
-        tf_map = {"1 min":"1","5 min":"5","15 min":"15","25 min":"25","1 H":"60"}
-        tf_lbl = st.selectbox("Timeframe",list(tf_map.keys()),index=2)
+
+        # ── TIMEFRAME ────────────────────────────────────────────────────────
+        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin-bottom:3px;'>⏱ Timeframe</div>", unsafe_allow_html=True)
+        tf_map = {
+            "1 min":"1","5 min":"5","15 min":"15",
+            "25 min":"25","1 Hour":"60","Daily":"1D",
+        }
+        tf_lbl   = st.selectbox("Timeframe", list(tf_map.keys()), index=2, label_visibility="collapsed")
         interval = tf_map[tf_lbl]
         if interval != st.session_state.interval:
             st.session_state.interval = interval
 
-        st.markdown("<div style='font-size:.72rem;color:#4a6fa5;margin:6px 0 2px;'>Chart Overlays</div>",unsafe_allow_html=True)
+        # ── DATE RANGE ───────────────────────────────────────────────────────
+        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin:8px 0 3px;'>📅 Date Range</div>", unsafe_allow_html=True)
+
+        # Preset options depend on timeframe
+        is_daily = (interval == "1D")
+        if is_daily:
+            presets = ["Last 1 Month","Last 3 Months","Last 6 Months","Last 1 Year","Custom"]
+        else:
+            presets = ["Today","Last Trading Day","This Week","Last 5 Days","Custom"]
+
+        # Keep mode valid if timeframe changes
+        cur_mode = st.session_state.date_mode
+        if cur_mode not in presets:
+            cur_mode = presets[0]
+            st.session_state.date_mode = cur_mode
+
+        date_mode = st.selectbox("Date Range", presets,
+                                 index=presets.index(cur_mode),
+                                 label_visibility="collapsed",
+                                 key="date_mode_sel")
+        if date_mode != st.session_state.date_mode:
+            st.session_state.date_mode    = date_mode
+            st.session_state.last_fetch   = {}   # invalidate cache
+
+        today    = datetime.now().date()
+        ltday    = last_trading_day()
+        custom_from = st.session_state.custom_from
+        custom_to   = st.session_state.custom_to
+
+        if date_mode == "Custom":
+            col_f, col_t = st.columns(2)
+            with col_f:
+                default_from = custom_from if custom_from else (ltday if not is_daily else today - timedelta(days=90))
+                new_from = st.date_input("From", value=default_from, max_value=today, label_visibility="visible")
+            with col_t:
+                default_to = custom_to if custom_to else today
+                new_to = st.date_input("To", value=default_to, max_value=today, label_visibility="visible")
+            if new_from != custom_from or new_to != custom_to:
+                st.session_state.custom_from = new_from
+                st.session_state.custom_to   = new_to
+                st.session_state.last_fetch  = {}
+            custom_from = st.session_state.custom_from
+            custom_to   = st.session_state.custom_to
+        else:
+            # Show resolved range as info
+            fd, td = resolve_date_range(date_mode, None, None, interval)
+            fd_disp = fd.split(" ")[0]; td_disp = td.split(" ")[0]
+            st.markdown(f"<div style='font-size:.68rem;color:#4a6fa5;padding:3px 0;'>{fd_disp} → {td_disp}</div>", unsafe_allow_html=True)
+
+        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin:8px 0 3px;'>🎨 Chart Overlays</div>", unsafe_allow_html=True)
         show_ema  = st.checkbox("EMA 9/21", value=True)
         show_vwap = st.checkbox("VWAP",     value=True)
         show_bb   = st.checkbox("Bollinger",value=False)
@@ -950,8 +1121,9 @@ def show_dashboard():
             st.rerun()
 
     # ── TOP BAR ──────────────────────────────────────────────────────────────
-    now_ist = datetime.now().strftime("%d %b %Y  %H:%M IST")
-    market_txt = "🟢 OPEN" if is_market_open() else "🔴 CLOSED"
+    now_ist = ist_now().strftime("%d %b %Y  %H:%M IST")
+    mkt_status, mkt_col, mkt_emoji = market_status()
+    market_txt = f"{mkt_emoji} {mkt_status}"
     st.markdown(f"""
     <div style='display:flex;justify-content:space-between;align-items:center;
          background:#0d1525;border:.5px solid #1e3050;border-radius:8px;
@@ -960,7 +1132,9 @@ def show_dashboard():
       <span style='font-size:.85rem;color:#e2e8f0;font-weight:600;'>{sym}
         <span style='color:#4a6fa5;font-weight:400;font-size:.73rem;'> {sym_inf.get("name","")} · {sym_inf.get("sector","")}</span>
       </span>
-      <span style='font-size:.78rem;color:#4a6fa5;'>{market_txt} &nbsp;·&nbsp; 🕐 {now_ist}</span>
+      <span style='font-size:.78rem;'><span style='color:{mkt_col};font-weight:700;'>{mkt_emoji} {mkt_status}</span>
+        <span style='color:#4a6fa5;'> &nbsp;·&nbsp; 🕐 {now_ist}</span>
+      </span>
     </div>""", unsafe_allow_html=True)
 
     # ── QUOTES ───────────────────────────────────────────────────────────────
@@ -982,17 +1156,31 @@ def show_dashboard():
         mc[i].metric(s, f"₹{v:,.2f}")
     mc[3].metric("Lot Size", LOT_SIZES.get(sym,"—"))
     mc[4].metric("Interval", tf_lbl)
-    mc[5].metric("Market", market_txt, delta_color="off")
+    mc[5].metric("Market", mkt_status, delta_color="off")
 
     # ── TABS ─────────────────────────────────────────────────────────────────
     tabs = st.tabs(["📈 Chart & Analysis","📊 Option Chain","🎯 Strategies","🗂️ Portfolio","⚙️ Config"])
     tab_chart, tab_oc, tab_strat, tab_port, tab_cfg = tabs
 
     # ── FETCH / CACHE CANDLES ────────────────────────────────────────────────
-    ck = f"{sym}_{interval}"
-    if time.time() - st.session_state.last_fetch.get(ck,0) > 90:
-        with st.spinner(f"Fetching {sym} {tf_lbl} candles..."):
-            raw = fetch_candles(sym, interval)
+    date_mode   = st.session_state.date_mode
+    custom_from = st.session_state.custom_from
+    custom_to   = st.session_state.custom_to
+
+    # Cache key includes date range so switching range forces a re-fetch
+    cf_str = str(custom_from) if custom_from else ""
+    ct_str = str(custom_to)   if custom_to   else ""
+    ck = f"{sym}_{interval}_{date_mode}_{cf_str}_{ct_str}"
+
+    # Auto-refresh only makes sense for today/live; historical never stales
+    live_mode  = date_mode in ("Today",)
+    cache_ttl  = 90 if live_mode else 3600   # 90s live, 1h for historical
+
+    need_fetch = time.time() - st.session_state.last_fetch.get(ck, 0) > cache_ttl
+
+    if need_fetch:
+        with st.spinner(f"Fetching {sym} {tf_lbl} · {date_mode}..."):
+            raw = fetch_candles(sym, interval, date_mode, custom_from, custom_to)
         if raw and not raw.get("error") and raw.get("close"):
             result = analyse(raw)
             result["symbol"] = sym
@@ -1003,7 +1191,8 @@ def show_dashboard():
                 pats=sig.get("patterns",[])
                 add_alert(sig["type"],f"{sym} {pats[0]['pattern'] if pats else sig.get('reasons',[''])[0]} ({tf_lbl})")
         else:
-            st.error(f"⚠️ {(raw or {}).get('error','No candle data')}")
+            err = (raw or {}).get("error","No candle data returned")
+            st.error(f"⚠️ {err}")
         result = st.session_state.analysis_cache.get(ck)
     else:
         result = st.session_state.analysis_cache.get(ck)
@@ -1021,12 +1210,19 @@ def show_dashboard():
                 mc2   = "#00d4aa" if mv>0 else "#f87171"
                 hc    = "#00d4aa" if hv>0 else "#f87171"
 
-                # Refresh button
-                rcol_btn,_ = st.columns([1,5])
-                with rcol_btn:
-                    if st.button("🔄 Refresh",key="chart_ref"):
-                        st.session_state.last_fetch[ck]=0
+                # Toolbar row
+                tb1, tb2, tb3 = st.columns([1,1,4])
+                with tb1:
+                    if st.button("🔄 Refresh", key="chart_ref"):
+                        st.session_state.last_fetch[ck] = 0
                         st.rerun()
+                with tb2:
+                    fd_d, td_d = resolve_date_range(date_mode, custom_from, custom_to, interval)
+                    fd_show = fd_d.split(" ")[0]; td_show = td_d.split(" ")[0]
+                    candle_count = len(result.get("candles", []))
+                    st.markdown(f"<span style='font-size:.72rem;color:#4a6fa5;line-height:2.2;'>"
+                                f"📅 {fd_show}→{td_show} · {candle_count} candles</span>",
+                                unsafe_allow_html=True)
 
                 st.markdown(f"""<div class='ind-row'>
                   <span class='ind-chip'>EMA9 <span>{fmt(ind.get('ema9',0))}</span></span>
@@ -1043,8 +1239,9 @@ def show_dashboard():
                                   ind, show_ema, show_vwap, show_bb)
                 if fig:
                     st.plotly_chart(fig, use_container_width=True, config={"displaylogo":False,"scrollZoom":True})
-                ts = st.session_state.last_fetch.get(ck,0)
-                st.caption(f"Last updated: {datetime.fromtimestamp(ts).strftime('%H:%M:%S')} IST · Auto-refresh every 90s")
+                ts = st.session_state.last_fetch.get(ck, 0)
+                refresh_lbl = "auto-refresh 90s" if live_mode else "historical — click Refresh to reload"
+                st.caption(f"Updated {datetime.fromtimestamp(ts).strftime('%H:%M:%S')} IST · {tf_lbl} · {date_mode} · {refresh_lbl}")
             else:
                 st.info("Waiting for candle data...")
 
