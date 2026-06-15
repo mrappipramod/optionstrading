@@ -34,52 +34,103 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── CSS ─────────────────────────────────────────────────────────────────────
+# ─── CSS — LIGHT PROFESSIONAL THEME ──────────────────────────────────────────
+# Color palette:
+#   BG main:    #f0f4f8   (cool off-white)
+#   BG card:    #ffffff   (pure white cards)
+#   BG sidebar: #f8fafc
+#   Border:     #dde3ec
+#   Text main:  #1a2332   (near-black)
+#   Text muted: #64748b
+#   Accent:     #0ea5e9   (professional sky blue)
+#   BUY green:  #059669
+#   SELL red:   #dc2626
+#   Amber:      #d97706
+
 st.markdown("""<style>
+/* ── Base & layout ── */
 #MainMenu,footer,header{visibility:hidden}
 .block-container{padding-top:.8rem;padding-bottom:.5rem}
-[data-testid="metric-container"]{background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:6px 12px}
-[data-testid="stMetricValue"]{font-size:1rem!important;font-weight:700}
+.stApp{background:#f0f4f8}
+section[data-testid="stSidebar"]{background:#f8fafc;border-right:1px solid #dde3ec}
+section[data-testid="stSidebar"] *{color:#1a2332!important}
+
+/* ── Streamlit native metric cards ── */
+[data-testid="metric-container"]{
+  background:#ffffff;border:1px solid #dde3ec;border-radius:10px;
+  padding:8px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+[data-testid="stMetricValue"]{font-size:1rem!important;font-weight:700;color:#1a2332!important}
 [data-testid="stMetricDelta"]{font-size:.72rem!important}
 
-/* signal cards */
-.sig-BUY    {background:#00d4aa12;border:1.5px solid #00d4aa55;border-radius:10px;padding:12px;text-align:center}
-.sig-SELL   {background:#f8717112;border:1.5px solid #f8717155;border-radius:10px;padding:12px;text-align:center}
-.sig-NEUTRAL{background:#4a6fa512;border:1.5px solid #4a6fa555;border-radius:10px;padding:12px;text-align:center}
-.sig-label  {font-size:1.5rem;font-weight:800;letter-spacing:1px}
-.sig-sub    {font-size:.78rem;color:#94a3b8;margin-top:3px}
-.sig-score  {font-size:.72rem;color:#4a6fa5;margin-top:2px}
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"]{background:#f0f4f8;border-radius:10px;padding:3px}
+.stTabs [data-baseweb="tab"]{border-radius:8px;font-size:.82rem;font-weight:600;color:#64748b}
+.stTabs [aria-selected="true"]{background:#ffffff;color:#0ea5e9!important;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 
-/* indicators bar */
-.ind-row{display:flex;flex-wrap:wrap;gap:10px;background:#0d1525;border:.5px solid #1e3050;
-         border-radius:8px;padding:7px 12px;margin-bottom:6px}
-.ind-chip{font-size:.73rem;color:#4a6fa5}
-.ind-chip span{color:#e2e8f0;font-weight:600;margin-left:3px}
+/* ── Expanders ── */
+.streamlit-expanderHeader{background:#ffffff;border:1px solid #dde3ec;border-radius:8px;
+  font-weight:600;color:#1a2332;font-size:.85rem}
+.streamlit-expanderContent{background:#ffffff;border:1px solid #dde3ec;border-top:none;
+  border-radius:0 0 8px 8px;padding:12px}
 
-/* option chain */
+/* ── Buttons ── */
+.stButton>button{border-radius:8px;font-weight:600;font-size:.8rem;border:1px solid #dde3ec;
+  background:#ffffff;color:#1a2332;transition:all .15s}
+.stButton>button:hover{background:#f0f4f8;border-color:#0ea5e9;color:#0ea5e9}
+.stButton>button[kind="primary"]{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.stButton>button[kind="primary"]:hover{background:#0284c7}
+
+/* ── Inputs / selects ── */
+.stTextInput>div>div>input,.stSelectbox>div>div,.stNumberInput>div>div>input{
+  background:#ffffff;border:1px solid #dde3ec;border-radius:8px;color:#1a2332;font-size:.83rem}
+.stSlider [data-baseweb="slider"]{margin-top:4px}
+
+/* ── Divider ── */
+hr{border-color:#dde3ec}
+
+/* ── Signal cards ── */
+.sig-BUY    {background:#ecfdf5;border:1.5px solid #059669;border-radius:10px;padding:12px;text-align:center}
+.sig-SELL   {background:#fef2f2;border:1.5px solid #dc2626;border-radius:10px;padding:12px;text-align:center}
+.sig-NEUTRAL{background:#f8fafc;border:1.5px solid #64748b;border-radius:10px;padding:12px;text-align:center}
+.sig-label  {font-size:1.5rem;font-weight:800;letter-spacing:.5px;color:#1a2332}
+.sig-sub    {font-size:.78rem;color:#64748b;margin-top:3px}
+.sig-score  {font-size:.72rem;color:#64748b;margin-top:2px}
+
+/* ── Indicator bar ── */
+.ind-row{display:flex;flex-wrap:wrap;gap:10px;background:#ffffff;border:1px solid #dde3ec;
+         border-radius:8px;padding:7px 14px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.ind-chip{font-size:.73rem;color:#64748b}
+.ind-chip span{color:#1a2332;font-weight:700;margin-left:3px}
+
+/* ── Option chain table ── */
 .oc-table{width:100%;border-collapse:collapse;font-size:.72rem}
-.oc-table th{color:#4a6fa5;padding:4px 6px;text-align:center;border-bottom:.5px solid #1e3050;font-weight:500}
-.oc-table td{padding:3px 6px;text-align:center;border-bottom:.5px solid #0d1525}
-.oc-call{color:#00d4aa;font-weight:600}
-.oc-put {color:#f87171;font-weight:600}
-.oc-atm {background:#1e3050;font-weight:800;color:#f59e0b}
-.oc-strike{color:#e2e8f0;font-weight:700}
-.oc-iv{color:#a78bfa;font-size:.68rem}
+.oc-table th{color:#64748b;padding:5px 6px;text-align:center;
+             border-bottom:1.5px solid #dde3ec;font-weight:600;background:#f8fafc}
+.oc-table td{padding:4px 6px;text-align:center;border-bottom:1px solid #f0f4f8}
+.oc-table tr:hover td{background:#f8fafc}
+.oc-call  {color:#059669;font-weight:700}
+.oc-put   {color:#dc2626;font-weight:700}
+.oc-atm   {background:#fef9ec;font-weight:800;color:#d97706}
+.oc-strike{color:#1a2332;font-weight:700}
+.oc-iv    {color:#7c3aed;font-size:.68rem}
 
-/* alerts */
-.alert-item{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:.5px solid #1e3050;font-size:.78rem}
+/* ── Alert list ── */
+.alert-item{display:flex;gap:8px;align-items:flex-start;padding:6px 0;
+            border-bottom:1px solid #f0f4f8;font-size:.78rem}
 .alert-item:last-child{border-bottom:none}
 .adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
 
-/* order buttons */
-.buy-btn{background:#00d4aa20;border:1px solid #00d4aa55;color:#00d4aa;border-radius:6px;padding:6px 0;
-         width:100%;cursor:pointer;font-weight:700;font-size:.8rem}
-.sell-btn{background:#f8717120;border:1px solid #f8717155;color:#f87171;border-radius:6px;padding:6px 0;
-          width:100%;cursor:pointer;font-weight:700;font-size:.8rem}
+/* ── Strength meter rows ── */
+.str-row{display:flex;justify-content:space-between;padding:4px 0;font-size:.78rem;
+         border-bottom:1px solid #f0f4f8}
+.str-row:last-child{border-bottom:none}
+.str-name{color:#64748b;font-weight:500}
 
-/* str meter */
-.str-row{display:flex;justify-content:space-between;padding:3px 0;font-size:.78rem}
-.str-name{color:#4a6fa5}
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f0f4f8}
+::-webkit-scrollbar-thumb{background:#dde3ec;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#64748b}
 </style>""", unsafe_allow_html=True)
 
 # ─── INSTRUMENTS ─────────────────────────────────────────────────────────────
@@ -807,10 +858,10 @@ def build_chart(candles, candle_signals, indicators, show_ema, show_vwap, show_b
     fig.update_layout(
         height=500,
         paper_bgcolor="#060b18",plot_bgcolor="#0a1020",
-        font=dict(color="#94a3b8",size=10),
+        font=dict(color="#cbd5e1",size=10),
         xaxis_rangeslider_visible=False,
         legend=dict(orientation="h",yanchor="bottom",y=1.01,xanchor="left",x=0,
-                    bgcolor="rgba(0,0,0,0)",font=dict(size=9)),
+                    bgcolor="rgba(255,255,255,0.8)",font=dict(size=9)),
         margin=dict(l=0,r=40,t=8,b=0),
     )
     # TradingView-style range selector on x-axis
@@ -825,22 +876,22 @@ def build_chart(candles, candle_signals, indicators, show_ema, show_vwap, show_b
                 dict(count=1,   label="1M",   step="month",  stepmode="backward"),
                 dict(step="all",label="All"),
             ],
-            bgcolor="#0d1525",
-            activecolor="#1e3050",
-            bordercolor="#1e3050",
+            bgcolor="#ffffff",
+            activecolor="#f0f4f8",
+            bordercolor="#dde3ec",
             borderwidth=1,
-            font=dict(color="#94a3b8", size=10),
+            font=dict(color="#cbd5e1", size=10),
             x=0, y=1.02,
         ),
-        gridcolor="#1e3050",gridwidth=0.4,
-        tickfont=dict(color="#4a6fa5",size=9),showticklabels=True,
+        gridcolor="#e2e8f0",gridwidth=0.4,
+        tickfont=dict(color="#94a3b8",size=9),showticklabels=True,
     )
     for i in range(1,4):
         ax = "yaxis" if i==1 else f"yaxis{i}"
         fig.update_layout(**{ax:dict(
-            gridcolor="#1e3050",gridwidth=0.4,
-            zerolinecolor="#1e3050",
-            tickfont=dict(color="#4a6fa5",size=9),
+            gridcolor="#e2e8f0",gridwidth=0.4,
+            zerolinecolor="#e2e8f0",
+            tickfont=dict(color="#94a3b8",size=9),
         )})
     return fig
 def show_option_chain_tab(sym, ltp):
@@ -895,17 +946,17 @@ def show_option_chain_tab(sym, ltp):
             )
         else:
             st.markdown(f"""
-            <div style='background:#f59e0b18;border:1.5px solid #f59e0b44;border-radius:12px;
+            <div style='background:#fef9ec;border:1.5px solid #f59e0b44;border-radius:12px;
                  padding:18px 22px;margin:8px 0;'>
               <div style='font-size:1rem;font-weight:700;color:#f59e0b;margin-bottom:6px;'>
                 ⚠️ Option Chain Not Available for {sym}
               </div>
-              <div style='color:#94a3b8;font-size:.83rem;line-height:1.8;'>
-                <b style='color:#e2e8f0;'>{sym_name}</b> ({seg_disp}) does not appear to be in the NSE F&O segment,
+              <div style='color:#64748b;font-size:.83rem;line-height:1.8;'>
+                <b style='color:#1a2332;'>{sym_name}</b> ({seg_disp}) does not appear to be in the NSE F&O segment,
                 or no active expiries were found.<br>
                 Option chains exist only for indices and ~180 F&O-eligible stocks on NSE.<br><br>
-                You can still use the <b style='color:#e2e8f0;'>📈 Chart & Analysis</b> and
-                <b style='color:#e2e8f0;'>🎯 Strategies</b> tabs for full technical analysis of {sym}.
+                You can still use the <b style='color:#1a2332;'>📈 Chart & Analysis</b> and
+                <b style='color:#1a2332;'>🎯 Strategies</b> tabs for full technical analysis of {sym}.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -937,14 +988,14 @@ def show_option_chain_tab(sym, ltp):
 
     # Summary bar
     st.markdown(f"""
-    <div style='display:flex;gap:20px;background:#0d1525;border:.5px solid #1e3050;
+    <div style='display:flex;gap:20px;background:#ffffff;border:1px solid #dde3ec;
          border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:.8rem;flex-wrap:wrap;'>
-      <span>Spot: <b style='color:#e2e8f0'>₹{spot:,.2f}</b></span>
+      <span>Spot: <b style='color:#1a2332'>₹{spot:,.2f}</b></span>
       <span>PCR: <b style='color:{pcr_col}'>{pcr:.2f}</b></span>
       <span>Call OI: <b style='color:#f87171'>{fmt_oi(total_ce_oi)}</b></span>
       <span>Put OI: <b style='color:#00d4aa'>{fmt_oi(total_pe_oi)}</b></span>
-      <span>Lot: <b style='color:#e2e8f0'>{lot}</b></span>
-      <span style='color:#4a6fa5'>Updated: {datetime.fromtimestamp(st.session_state.oc_last_fetch.get(oc_key,now_ts)).strftime("%H:%M:%S")}</span>
+      <span>Lot: <b style='color:#1a2332'>{lot}</b></span>
+      <span style='color:#64748b'>Updated: {datetime.fromtimestamp(st.session_state.oc_last_fetch.get(oc_key,now_ts)).strftime("%H:%M:%S")}</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -988,9 +1039,9 @@ def show_option_chain_tab(sym, ltp):
               <td class='oc-iv'>{r['ce_iv']}%</td>
               <td style='color:#a78bfa;font-size:.68rem'>{r['ce_delta']}</td>
               <td class='oc-call'>{fmt(r['ce_ltp'])}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>{fmt(r['ce_bid'])}/{fmt(r['ce_ask'])}</td>
+              <td style='color:#64748b;font-size:.68rem'>{fmt(r['ce_bid'])}/{fmt(r['ce_ask'])}</td>
               <td class='oc-strike'>{int(sp)}{atm_lbl}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>{fmt(r['pe_bid'])}/{fmt(r['pe_ask'])}</td>
+              <td style='color:#64748b;font-size:.68rem'>{fmt(r['pe_bid'])}/{fmt(r['pe_ask'])}</td>
               <td class='oc-put'>{fmt(r['pe_ltp'])}</td>
               <td style='color:#a78bfa;font-size:.68rem'>{r['pe_delta']}</td>
               <td class='oc-iv'>{r['pe_iv']}%</td>
@@ -1002,26 +1053,26 @@ def show_option_chain_tab(sym, ltp):
         elif view == "CE Focus":
             rows_html += f"""<tr class='{atm_cls}'>
               <td class='oc-call'>{fmt_oi(r['ce_oi'])}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>—</td>
+              <td style='color:#64748b;font-size:.68rem'>—</td>
               <td class='oc-iv'>{r['ce_iv']}%</td>
               <td style='color:#a78bfa'>{r['ce_delta']}</td>
               <td style='color:#f59e0b;font-size:.68rem'>{r['ce_theta']}</td>
               <td class='oc-call'>{fmt(r['ce_ltp'])}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>{fmt(r['ce_bid'])}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>{fmt(r['ce_ask'])}</td>
+              <td style='color:#64748b;font-size:.68rem'>{fmt(r['ce_bid'])}</td>
+              <td style='color:#64748b;font-size:.68rem'>{fmt(r['ce_ask'])}</td>
               <td class='oc-strike'>{int(sp)}{atm_lbl}</td>
             </tr>"""
         else:
             rows_html += f"""<tr class='{atm_cls}'>
               <td class='oc-strike'>{int(sp)}{atm_lbl}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>{fmt(r['pe_bid'])}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>{fmt(r['pe_ask'])}</td>
+              <td style='color:#64748b;font-size:.68rem'>{fmt(r['pe_bid'])}</td>
+              <td style='color:#64748b;font-size:.68rem'>{fmt(r['pe_ask'])}</td>
               <td class='oc-put'>{fmt(r['pe_ltp'])}</td>
               <td style='color:#a78bfa'>{r['pe_delta']}</td>
               <td style='color:#f59e0b;font-size:.68rem'>{r['pe_theta']}</td>
               <td class='oc-iv'>{r['pe_iv']}%</td>
               <td class='oc-put'>{fmt_oi(r['pe_oi'])}</td>
-              <td style='color:#4a6fa5;font-size:.68rem'>—</td>
+              <td style='color:#64748b;font-size:.68rem'>—</td>
             </tr>"""
 
     st.markdown(hdr + rows_html + "</table>", unsafe_allow_html=True)
@@ -1060,15 +1111,15 @@ def show_option_chain_tab(sym, ltp):
         delta_opt  = sel_row["ce_delta"] if is_ce else sel_row["pe_delta"]
 
         st.markdown(f"""
-        <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;
+        <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;
              margin:8px 0;display:flex;gap:20px;flex-wrap:wrap;font-size:.8rem;'>
-          <span>LTP: <b style='color:#e2e8f0'>₹{fmt(ltp_opt)}</b></span>
+          <span>LTP: <b style='color:#1a2332'>₹{fmt(ltp_opt)}</b></span>
           <span>Bid: <b style='color:#00d4aa'>₹{fmt(bid_opt)}</b></span>
           <span>Ask: <b style='color:#f87171'>₹{fmt(ask_opt)}</b></span>
           <span>IV: <b style='color:#a78bfa'>{iv_opt}%</b></span>
           <span>Delta: <b style='color:#f59e0b'>{delta_opt}</b></span>
-          <span>Sec ID: <b style='color:#4a6fa5'>{sec_id_opt}</b></span>
-          <span>Qty: <b style='color:#e2e8f0'>{lots*lot} ({lots} lot{'s' if lots>1 else ''})</b></span>
+          <span>Sec ID: <b style='color:#64748b'>{sec_id_opt}</b></span>
+          <span>Qty: <b style='color:#1a2332'>{lots*lot} ({lots} lot{'s' if lots>1 else ''})</b></span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1231,22 +1282,22 @@ def show_portfolio_tab():
             net_col = "#00d4aa" if total_net >= 0 else "#f87171"
             st.markdown(f"""
             <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;'>
-              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#4a6fa5;'>Net P&L (after charges)</div>
+              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#64748b;'>Net P&L (after charges)</div>
                 <div style='font-size:1.3rem;font-weight:800;color:{net_col};'>₹{total_net:+,.2f}</div>
               </div>
-              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#4a6fa5;'>Gross P&L</div>
-                <div style='font-size:1.3rem;font-weight:700;color:#e2e8f0;'>₹{total_gross:+,.2f}</div>
+              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#64748b;'>Gross P&L</div>
+                <div style='font-size:1.3rem;font-weight:700;color:#1a2332;'>₹{total_gross:+,.2f}</div>
                 <div style='font-size:.65rem;color:#f87171;'>Charges: ₹{total_charg:,.2f}</div>
               </div>
-              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#4a6fa5;'>Win Rate</div>
+              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#64748b;'>Win Rate</div>
                 <div style='font-size:1.3rem;font-weight:700;color:#{'00d4aa' if win_rate>=50 else 'f87171'};'>{win_rate:.0f}%</div>
-                <div style='font-size:.65rem;color:#4a6fa5;'>W:{wins} / L:{losses}</div>
+                <div style='font-size:.65rem;color:#64748b;'>W:{wins} / L:{losses}</div>
               </div>
-              <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;padding:10px 14px;'>
-                <div style='font-size:.7rem;color:#4a6fa5;'>Avg Win / Loss</div>
+              <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;padding:10px 14px;'>
+                <div style='font-size:.7rem;color:#64748b;'>Avg Win / Loss</div>
                 <div style='font-size:.95rem;font-weight:700;'>
                   <span style='color:#00d4aa;'>+₹{avg_win:,.0f}</span> /
                   <span style='color:#f87171;'>₹{avg_loss:,.0f}</span>
@@ -1267,39 +1318,39 @@ def show_portfolio_tab():
                     with tc1:
                         st.markdown(f"""
                         <div style='font-size:.8rem;'>
-                          <div style='color:#4a6fa5;'>Symbol</div>
-                          <div style='color:#e2e8f0;font-weight:700;'>{t['symbol']} · {t['direction']} · {t['qty']} qty</div>
-                          <div style='color:#4a6fa5;margin-top:6px;'>Entry → Exit</div>
-                          <div style='color:#e2e8f0;'>₹{t['entry']:,.2f} → ₹{t['exit']:,.2f}</div>
-                          <div style='color:#4a6fa5;margin-top:6px;'>Type</div>
-                          <div style='color:#e2e8f0;'>{t['type']}</div>
-                          {"<div style='color:#4a6fa5;margin-top:6px;'>Notes</div><div style='color:#e2e8f0;'>" + t.get('note','—') + "</div>" if t.get('note') else ""}
+                          <div style='color:#64748b;'>Symbol</div>
+                          <div style='color:#1a2332;font-weight:700;'>{t['symbol']} · {t['direction']} · {t['qty']} qty</div>
+                          <div style='color:#64748b;margin-top:6px;'>Entry → Exit</div>
+                          <div style='color:#1a2332;'>₹{t['entry']:,.2f} → ₹{t['exit']:,.2f}</div>
+                          <div style='color:#64748b;margin-top:6px;'>Type</div>
+                          <div style='color:#1a2332;'>{t['type']}</div>
+                          {"<div style='color:#64748b;margin-top:6px;'>Notes</div><div style='color:#1a2332;'>" + t.get('note','—') + "</div>" if t.get('note') else ""}
                         </div>
                         """, unsafe_allow_html=True)
                     with tc2:
                         st.markdown(f"""
                         <div style='font-size:.8rem;'>
-                          <div style='color:#4a6fa5;'>Gross P&L</div>
-                          <div style='font-size:1rem;font-weight:700;color:#e2e8f0;'>₹{t['gross_pnl']:+,.2f}</div>
-                          <div style='color:#4a6fa5;margin-top:8px;'>Charge Breakdown</div>
-                          <div style='color:#94a3b8;'>Brokerage: <b>₹{t['brokerage']:,.2f}</b></div>
-                          <div style='color:#94a3b8;'>STT: <b>₹{t['stt']:,.2f}</b></div>
-                          <div style='color:#94a3b8;'>Exchange: <b>₹{t['exchange_chrg']:,.2f}</b></div>
-                          <div style='color:#94a3b8;'>SEBI: <b>₹{t['sebi']:,.2f}</b></div>
-                          <div style='color:#94a3b8;'>GST: <b>₹{t['gst']:,.2f}</b></div>
-                          <div style='color:#94a3b8;'>Stamp: <b>₹{t['stamp']:,.2f}</b></div>
+                          <div style='color:#64748b;'>Gross P&L</div>
+                          <div style='font-size:1rem;font-weight:700;color:#1a2332;'>₹{t['gross_pnl']:+,.2f}</div>
+                          <div style='color:#64748b;margin-top:8px;'>Charge Breakdown</div>
+                          <div style='color:#64748b;'>Brokerage: <b>₹{t['brokerage']:,.2f}</b></div>
+                          <div style='color:#64748b;'>STT: <b>₹{t['stt']:,.2f}</b></div>
+                          <div style='color:#64748b;'>Exchange: <b>₹{t['exchange_chrg']:,.2f}</b></div>
+                          <div style='color:#64748b;'>SEBI: <b>₹{t['sebi']:,.2f}</b></div>
+                          <div style='color:#64748b;'>GST: <b>₹{t['gst']:,.2f}</b></div>
+                          <div style='color:#64748b;'>Stamp: <b>₹{t['stamp']:,.2f}</b></div>
                           <div style='color:#f87171;margin-top:4px;'>Total Charges: <b>₹{t['total_charges']:,.2f}</b></div>
                         </div>
                         """, unsafe_allow_html=True)
                     with tc3:
                         st.markdown(f"""
                         <div style='font-size:.8rem;text-align:center;'>
-                          <div style='color:#4a6fa5;margin-bottom:4px;'>NET P&L</div>
+                          <div style='color:#64748b;margin-bottom:4px;'>NET P&L</div>
                           <div style='font-size:1.8rem;font-weight:800;color:{nc};'>₹{t['net_pnl']:+,.2f}</div>
                           <div style='font-size:.85rem;color:{nc};'>{t['net_pnl_pct']:+.3f}%</div>
-                          <div style='color:#4a6fa5;margin-top:10px;font-size:.72rem;'>Turnover</div>
-                          <div style='color:#e2e8f0;'>₹{t['turnover']:,.2f}</div>
-                          <div style='color:#4a6fa5;margin-top:6px;font-size:.72rem;'>Charge %</div>
+                          <div style='color:#64748b;margin-top:10px;font-size:.72rem;'>Turnover</div>
+                          <div style='color:#1a2332;'>₹{t['turnover']:,.2f}</div>
+                          <div style='color:#64748b;margin-top:6px;font-size:.72rem;'>Charge %</div>
                           <div style='color:#f87171;'>
                             {(t['total_charges']/t['turnover']*100):.3f}% of turnover
                           </div>
@@ -1334,10 +1385,10 @@ def show_login():
     _,col,_ = st.columns([1,1.4,1])
     with col:
         st.markdown("""
-        <div style='background:#0d1525;border:.5px solid #1e3050;border-radius:14px;
+        <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:14px;
              padding:2.5rem 2rem;max-width:460px;margin:3rem auto;'>
           <div style='font-size:2rem;font-weight:800;color:#00d4aa;text-align:center;margin-bottom:.3rem;'>⚡ NiftyEdge Pro</div>
-          <div style='text-align:center;color:#4a6fa5;font-size:.83rem;margin-bottom:1.5rem;'>
+          <div style='text-align:center;color:#64748b;font-size:.83rem;margin-bottom:1.5rem;'>
             Dhan-powered Options Dashboard · Enter DhanHQ API credentials
           </div>
         </div>""", unsafe_allow_html=True)
@@ -1383,7 +1434,7 @@ def show_login():
                 else:
                     st.warning("Submit credentials first.")
 
-        st.markdown("<div style='text-align:center;margin-top:1rem;font-size:.75rem;color:#4a6fa5;'>🔒 Stored in browser session only — never sent to third parties<br><a href='https://api.dhan.co' target='_blank' style='color:#00d4aa'>api.dhan.co</a></div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center;margin-top:1rem;font-size:.75rem;color:#64748b;'>🔒 Stored in browser session only — never sent to third parties<br><a href='https://api.dhan.co' target='_blank' style='color:#00d4aa'>api.dhan.co</a></div>", unsafe_allow_html=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  DASHBOARD
@@ -1395,12 +1446,12 @@ def show_dashboard():
     # ── SIDEBAR ──────────────────────────────────────────────────────────────
     with st.sidebar:
         st.markdown(f"""<div style='font-size:1.15rem;font-weight:700;color:#00d4aa;'>⚡ NiftyEdge Pro</div>
-        <div style='font-size:.7rem;color:#4a6fa5;margin-bottom:.6rem;'>
+        <div style='font-size:.7rem;color:#64748b;margin-bottom:.6rem;'>
         {st.session_state.client_id[:6]}•••• · {len(SECURITY_IDS)} instruments</div>""",
         unsafe_allow_html=True)
 
         # ── INSTRUMENT SELECTOR ──────────────────────────────────────────────
-        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin-bottom:4px;'>🔍 Search Any Stock / Index</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:4px;'>🔍 Search Any Stock / Index</div>", unsafe_allow_html=True)
         sq = st.text_input("Search", placeholder="Symbol, name or sector…",
                            label_visibility="collapsed", key="sb_search")
         matched = search_stocks(sq)
@@ -1437,7 +1488,7 @@ def show_dashboard():
                         for lr in live_res[:8]:
                             lc1, lc2 = st.columns([3,1])
                             with lc1:
-                                st.markdown(f"<div style='font-size:.72rem;color:#e2e8f0;'>{lr['symbol']} <span style='color:#4a6fa5;'>ID:{lr['id']}</span><br><span style='color:#4a6fa5;font-size:.65rem;'>{lr['name']}</span></div>", unsafe_allow_html=True)
+                                st.markdown(f"<div style='font-size:.72rem;color:#1a2332;'>{lr['symbol']} <span style='color:#64748b;'>ID:{lr['id']}</span><br><span style='color:#64748b;font-size:.65rem;'>{lr['name']}</span></div>", unsafe_allow_html=True)
                             with lc2:
                                 if st.button("Load", key=f"live_load_{lr['id']}", use_container_width=True):
                                     sym_key = lr["symbol"].upper().strip()
@@ -1455,7 +1506,7 @@ def show_dashboard():
                     else:
                         st.caption("Not found. Try the manual entry below.")
 
-                st.markdown("<div style='font-size:.65rem;color:#4a6fa5;margin-top:6px;'>Manual entry:</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:.65rem;color:#64748b;margin-top:6px;'>Manual entry:</div>", unsafe_allow_html=True)
                 c_sym = st.text_input("Symbol label", placeholder="e.g. ETERNAL", key="cs_sym")
                 c_id  = st.text_input("Security ID", placeholder="e.g. 21866", key="cs_id")
                 c_seg = st.selectbox("Segment", ["NSE_EQ","BSE_EQ","NSE_FNO","IDX_I"], key="cs_seg")
@@ -1473,14 +1524,14 @@ def show_dashboard():
                         st.error("Both fields required")
         else:
             # Pinned majors
-            st.markdown("<div style='font-size:.72rem;color:#4a6fa5;margin-bottom:3px;'>📌 Major Instruments</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:.72rem;color:#64748b;margin-bottom:3px;'>📌 Major Instruments</div>", unsafe_allow_html=True)
             MAJORS = {
                 "Indices":   ["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX"],
                 "Large Cap": ["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","LT","BAJFINANCE"],
                 "Popular":   ["ETERNAL","IRCTC","TATAMOTORS","HAL","DMART","TRENT","TITAN"],
             }
             for grp, gsyms in MAJORS.items():
-                st.markdown(f"<div style='font-size:.63rem;color:#4a6fa5;margin-top:4px;'>{grp}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:.63rem;color:#64748b;margin-top:4px;'>{grp}</div>", unsafe_allow_html=True)
                 gc = st.columns(3)
                 for i, gs in enumerate(gsyms):
                     with gc[i % 3]:
@@ -1489,7 +1540,7 @@ def show_dashboard():
                                      type="primary" if is_cur else "secondary"):
                             st.session_state.symbol = gs; st.rerun()
 
-            st.markdown("<div style='font-size:.72rem;color:#4a6fa5;margin:6px 0 3px;'>🗂 Browse by Sector</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:.72rem;color:#64748b;margin:6px 0 3px;'>🗂 Browse by Sector</div>", unsafe_allow_html=True)
             secs2 = ["— Pick sector —"] + sorted(SECTOR_GROUPS.keys())
             sec2  = st.selectbox("Sector", secs2, label_visibility="collapsed", key="sec_browse")
             if sec2 != "— Pick sector —":
@@ -1504,7 +1555,7 @@ def show_dashboard():
         st.divider()
 
         # ── TIMEFRAME ────────────────────────────────────────────────────────
-        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin-bottom:3px;'>⏱ Timeframe</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:3px;'>⏱ Timeframe</div>", unsafe_allow_html=True)
         tf_map = {
             "1 min":"1","5 min":"5","15 min":"15",
             "25 min":"25","1 Hour":"60","Daily":"1D",
@@ -1515,7 +1566,7 @@ def show_dashboard():
             st.session_state.interval = interval
 
         # ── DATE RANGE ───────────────────────────────────────────────────────
-        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin:8px 0 3px;'>📅 Date Range</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.75rem;color:#64748b;font-weight:600;margin:8px 0 3px;'>📅 Date Range</div>", unsafe_allow_html=True)
 
         # Preset options depend on timeframe
         is_daily = (interval == "1D")
@@ -1561,9 +1612,9 @@ def show_dashboard():
             # Show resolved range as info
             fd, td = resolve_date_range(date_mode, None, None, interval)
             fd_disp = fd.split(" ")[0]; td_disp = td.split(" ")[0]
-            st.markdown(f"<div style='font-size:.68rem;color:#4a6fa5;padding:3px 0;'>{fd_disp} → {td_disp}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:.68rem;color:#64748b;padding:3px 0;'>{fd_disp} → {td_disp}</div>", unsafe_allow_html=True)
 
-        st.markdown("<div style='font-size:.75rem;color:#4a6fa5;font-weight:600;margin:8px 0 3px;'>🎨 Chart Overlays</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.75rem;color:#64748b;font-weight:600;margin:8px 0 3px;'>🎨 Chart Overlays</div>", unsafe_allow_html=True)
         show_ema  = st.checkbox("EMA 9/21", value=True)
         show_vwap = st.checkbox("VWAP",     value=True)
         show_bb   = st.checkbox("Bollinger",value=False)
@@ -1589,14 +1640,14 @@ def show_dashboard():
     market_txt = f"{mkt_emoji} {mkt_status}"
     st.markdown(f"""
     <div style='display:flex;justify-content:space-between;align-items:center;
-         background:#0d1525;border:.5px solid #1e3050;border-radius:8px;
+         background:#ffffff;border:1px solid #dde3ec;border-radius:8px;
          padding:7px 16px;margin-bottom:8px;'>
       <span style='font-size:.95rem;font-weight:700;color:#00d4aa;'>⚡ NiftyEdge Pro</span>
-      <span style='font-size:.85rem;color:#e2e8f0;font-weight:600;'>{sym}
-        <span style='color:#4a6fa5;font-weight:400;font-size:.73rem;'> {sym_inf.get("name","")} · {sym_inf.get("sector","")}</span>
+      <span style='font-size:.85rem;color:#1a2332;font-weight:600;'>{sym}
+        <span style='color:#64748b;font-weight:400;font-size:.73rem;'> {sym_inf.get("name","")} · {sym_inf.get("sector","")}</span>
       </span>
       <span style='font-size:.78rem;'><span style='color:{mkt_col};font-weight:700;'>{mkt_emoji} {mkt_status}</span>
-        <span style='color:#4a6fa5;'> &nbsp;·&nbsp; 🕐 {now_ist}</span>
+        <span style='color:#64748b;'> &nbsp;·&nbsp; 🕐 {now_ist}</span>
       </span>
     </div>""", unsafe_allow_html=True)
 
@@ -1720,7 +1771,7 @@ def show_dashboard():
                     fd_d, td_d = resolve_date_range(date_mode, custom_from, custom_to, interval)
                     fd_show = fd_d.split(" ")[0]; td_show = td_d.split(" ")[0]
                     candle_count = len(result.get("candles", []))
-                    st.markdown(f"<span style='font-size:.72rem;color:#4a6fa5;line-height:2.2;'>"
+                    st.markdown(f"<span style='font-size:.72rem;color:#64748b;line-height:2.2;'>"
                                 f"📅 {fd_show}→{td_show} · {candle_count} candles</span>",
                                 unsafe_allow_html=True)
 
@@ -1804,17 +1855,17 @@ def show_dashboard():
                 fno_action_html = ""
                 if is_fno and stype != "NEUTRAL":
                     fno_action_html = f"""
-                      <div style='margin-top:8px;padding:8px 10px;background:#060b18;
+                      <div style='margin-top:8px;padding:8px 10px;background:#f0f4f8;
                            border-radius:7px;border:.5px solid {opt_border};'>
-                        <div style='font-size:.65rem;color:#4a6fa5;margin-bottom:2px;'>OPTIONS ACTION</div>
+                        <div style='font-size:.65rem;color:#64748b;margin-bottom:2px;'>OPTIONS ACTION</div>
                         <div style='font-size:1rem;font-weight:800;color:{opt_color};'>{opt_emoji} {opt_action}</div>
-                        <div style='font-size:.72rem;color:#e2e8f0;margin-top:3px;'>
+                        <div style='font-size:.72rem;color:#1a2332;margin-top:3px;'>
                           Preferred: <b>{strike_lbl}</b>
                         </div>
-                        <div style='font-size:.68rem;color:#4a6fa5;'>
+                        <div style='font-size:.68rem;color:#64748b;'>
                           Aggressive: {otm_lbl}
                         </div>
-                        <div style='font-size:.65rem;color:#4a6fa5;margin-top:3px;font-style:italic;'>
+                        <div style='font-size:.65rem;color:#64748b;margin-top:3px;font-style:italic;'>
                           {action_tip}
                         </div>
                       </div>"""
@@ -1822,11 +1873,11 @@ def show_dashboard():
                     eq_action = "BUY shares" if stype == "BUY" else "SELL / SHORT shares"
                     eq_color  = "#00d4aa" if stype == "BUY" else "#f87171"
                     fno_action_html = f"""
-                      <div style='margin-top:8px;padding:8px 10px;background:#060b18;
+                      <div style='margin-top:8px;padding:8px 10px;background:#f0f4f8;
                            border-radius:7px;border:.5px solid {opt_border};'>
-                        <div style='font-size:.65rem;color:#4a6fa5;margin-bottom:2px;'>EQUITY ACTION</div>
+                        <div style='font-size:.65rem;color:#64748b;margin-bottom:2px;'>EQUITY ACTION</div>
                         <div style='font-size:.95rem;font-weight:700;color:{eq_color};'>{opt_emoji} {eq_action}</div>
-                        <div style='font-size:.65rem;color:#4a6fa5;margin-top:3px;'>
+                        <div style='font-size:.65rem;color:#64748b;margin-top:3px;'>
                           No F&O chain — trade underlying stock directly
                         </div>
                       </div>"""
@@ -1837,8 +1888,8 @@ def show_dashboard():
                      border-radius:10px;padding:12px;text-align:center;'>
                   <div style='font-size:1.4rem;font-weight:800;color:{opt_color};
                        letter-spacing:.5px;'>{opt_emoji} {signal_lbl}</div>
-                  <div style='font-size:.75rem;color:#94a3b8;margin-top:3px;'>{pat}</div>
-                  <div style='font-size:.68rem;color:#4a6fa5;margin-top:2px;'>
+                  <div style='font-size:.75rem;color:#64748b;margin-top:3px;'>{pat}</div>
+                  <div style='font-size:.68rem;color:#64748b;margin-top:2px;'>
                     Score {score:+d} · {conf} confidence
                   </div>
                 </div>""", unsafe_allow_html=True)
@@ -1859,22 +1910,22 @@ def show_dashboard():
                   <div class='str-row'><span class='str-name'>MACD Hist</span>{vb(ind.get("macd_hist",0)>0,"🟢 Bull","🔴 Bear")}</div>
                   <div class='str-row'><span class='str-name'>VWAP</span>{vb("Above VWAP" in rs,"🟢 Above","🔴 Below")}</div>
                   <div class='str-row'><span class='str-name'>Patterns</span>
-                    <span style='color:#e2e8f0'>{", ".join(p["pattern"] for p in pats) or "—"}</span></div>
+                    <span style='color:#1a2332'>{", ".join(p["pattern"] for p in pats) or "—"}</span></div>
                   <div class='str-row'><span class='str-name'>LTP</span>
-                    <span style='color:#e2e8f0'>₹{close:,.2f}</span></div>
+                    <span style='color:#1a2332'>₹{close:,.2f}</span></div>
                   <div class='str-row'><span class='str-name'>ATM Strike</span>
                     <span style='color:#f59e0b;font-weight:700'>{int(atm_strike)}</span></div>
                   <div class='str-row'><span class='str-name'>ATR</span>
-                    <span style='color:#e2e8f0'>{atr:.1f} pts</span></div>
+                    <span style='color:#1a2332'>{atr:.1f} pts</span></div>
                 </div>""", unsafe_allow_html=True)
 
                 # RSI bar
                 rp  = int(min(max(rsi_v,0),100))
                 bc2 = "#f87171" if rsi_v>70 or rsi_v<30 else "#00d4aa"
                 st.markdown(f"""<div style='margin:8px 0 2px'>
-                  <div style='height:5px;border-radius:3px;background:#1e3050;overflow:hidden'>
+                  <div style='height:5px;border-radius:3px;background:#f0f4f8;overflow:hidden'>
                     <div style='height:100%;width:{rp}%;background:{bc2};border-radius:3px'></div></div>
-                  <div style='display:flex;justify-content:space-between;font-size:9px;color:#4a6fa5;margin-top:2px'>
+                  <div style='display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-top:2px'>
                     <span>OS 30</span><span>RSI</span><span>OB 70</span></div></div>""",
                 unsafe_allow_html=True)
 
@@ -1890,8 +1941,8 @@ def show_dashboard():
                 st.markdown(f"""<div class='alert-item'>
                   <div class='adot' style='background:{c}'></div>
                   <div><span style='color:{c};font-weight:700'>{a["type"]}</span>
-                  <span style='color:#94a3b8'> {a["text"]}</span>
-                  <div style='font-size:.65rem;color:#4a6fa5'>{a["time"]}</div></div></div>""",
+                  <span style='color:#64748b'> {a["text"]}</span>
+                  <div style='font-size:.65rem;color:#64748b'>{a["time"]}</div></div></div>""",
                 unsafe_allow_html=True)
 
     # ═══ TAB 2: OPTION CHAIN ════════════════════════════════════════════════
@@ -1968,14 +2019,14 @@ def show_strategy_tab(result, sym, tf_lbl):
     st.markdown(f"""<div style='background:{cc}15;border:1.5px solid {cc}44;border-radius:12px;
          padding:14px 18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;'>
       <div>
-        <div style='font-size:.7rem;color:#4a6fa5;margin-bottom:2px;'>CONSENSUS — {sym} ({tf_lbl})</div>
+        <div style='font-size:.7rem;color:#64748b;margin-bottom:2px;'>CONSENSUS — {sym} ({tf_lbl})</div>
         <div style='font-size:1.6rem;font-weight:800;color:{cc};'>{em} {cd}</div>
       </div>
       <div style='text-align:right;font-size:.76rem;'>
         <span style='color:#00d4aa'>▲ {con["bull_count"]}</span> &nbsp;
         <span style='color:#f87171'>▼ {con["bear_count"]}</span> &nbsp;
         <span style='color:#f59e0b'>⏸ {con["hold_count"]}</span> &nbsp;
-        <span style='color:#4a6fa5'>⏳ {con["wait_count"]}</span>
+        <span style='color:#64748b'>⏳ {con["wait_count"]}</span>
       </div>
     </div>""", unsafe_allow_html=True)
 
@@ -2042,7 +2093,7 @@ def show_strategy_tab(result, sym, tf_lbl):
 
             elif act in ("EXIT_LONG","EXIT_SHORT"):
                 pnl=setup.current_pnl_pct; pc="#00d4aa" if pnl>=0 else "#f87171"
-                st.markdown(f"<div style='background:#60a5fa18;border:1px solid #60a5fa44;border-radius:8px;padding:10px;'><span style='color:#60a5fa;font-weight:700;font-size:1.1rem;'>EXIT</span><span style='color:{pc};margin-left:10px;'>{pnl:+.2f}%</span></div>",unsafe_allow_html=True)
+                st.markdown(f"<div style='background:#eff6ff;border:1px solid #60a5fa44;border-radius:8px;padding:10px;'><span style='color:#60a5fa;font-weight:700;font-size:1.1rem;'>EXIT</span><span style='color:{pc};margin-left:10px;'>{pnl:+.2f}%</span></div>",unsafe_allow_html=True)
                 for r in (setup.exit_reasons or []): st.markdown(f"🔵 {r}")
                 if st.button("✅ Confirm Exit",key=f"ext_{name}"):
                     at = st.session_state.active_trades.pop(name, {})
@@ -2051,7 +2102,7 @@ def show_strategy_tab(result, sym, tf_lbl):
 
             elif act == "STOP_LOSS":
                 pnl=setup.current_pnl_pct
-                st.markdown(f"<div style='background:#ef444420;border:2px solid #ef4444;border-radius:8px;padding:12px;'><div style='font-size:1.2rem;font-weight:800;color:#ef4444;'>🚨 STOP LOSS HIT</div><div style='color:#f87171;font-size:.85rem;'>Loss: {pnl:+.2f}%</div></div>",unsafe_allow_html=True)
+                st.markdown(f"<div style='background:#fef2f2;border:2px solid #ef4444;border-radius:8px;padding:12px;'><div style='font-size:1.2rem;font-weight:800;color:#ef4444;'>🚨 STOP LOSS HIT</div><div style='color:#f87171;font-size:.85rem;'>Loss: {pnl:+.2f}%</div></div>",unsafe_allow_html=True)
                 for r in (setup.sl_reasons or []): st.error(r)
                 if st.button("🚨 Confirm SL Exit",key=f"sl_{name}",type="primary"):
                     at = st.session_state.active_trades.pop(name, {})
@@ -2068,10 +2119,10 @@ def show_strategy_tab(result, sym, tf_lbl):
             d     = trade.get("direction","LONG")
             pnl   = ((close-entry)/entry*100) if d=="LONG" and entry else ((entry-close)/entry*100) if entry else 0
             pc    = "#00d4aa" if pnl>=0 else "#f87171"
-            st.markdown(f"""<div style='background:#0d1525;border:.5px solid #1e3050;border-radius:8px;
+            st.markdown(f"""<div style='background:#ffffff;border:1px solid #dde3ec;border-radius:8px;
                  padding:9px 14px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;'>
-              <div><b style='color:#e2e8f0'>{strat}</b>
-                <span style='color:#4a6fa5;font-size:.73rem;margin-left:8px;'>{d} · @{entry:.0f} · SL {trade.get("stop_loss",0):.0f}</span></div>
+              <div><b style='color:#1a2332'>{strat}</b>
+                <span style='color:#64748b;font-size:.73rem;margin-left:8px;'>{d} · @{entry:.0f} · SL {trade.get("stop_loss",0):.0f}</span></div>
               <div style='font-weight:700;color:{pc}'>{pnl:+.2f}%</div></div>""",
             unsafe_allow_html=True)
 
@@ -2079,52 +2130,316 @@ def show_strategy_tab(result, sym, tf_lbl):
 # ─── CONFIG TAB ──────────────────────────────────────────────────────────────
 def show_config_tab():
     st.markdown("### ⚙️ Strategy Configuration")
-    cfg = st.session_state.get("strategy_config",{})
+    st.caption("Professional trading parameters — tuned for Indian F&O intraday and swing trading.")
+    cfg = st.session_state.get("strategy_config", {})
 
-    with st.expander("🔧 Global Risk",expanded=True):
-        c1,c2,c3 = st.columns(3)
-        with c1: sl_atr=st.slider("SL ATR Mult",0.5,3.0,float(cfg.get("sl_atr_mult",1.5)),0.1)
-        with c2: t2_rr=st.slider("Target2 RR",1.5,5.0,float(cfg.get("t2_rr",2.5)),0.5)
-        with c3: t3_rr=st.slider("Target3 RR",2.0,8.0,float(cfg.get("t3_rr",4.0)),0.5)
-        cfg.update(sl_atr_mult=sl_atr,t2_rr=t2_rr,t3_rr=t3_rr,t1_rr=round(t2_rr*0.6,1))
+    # ── PRESET PROFILES ──────────────────────────────────────────────────────
+    st.markdown("#### 🎯 Quick Profiles")
+    st.caption("Select a preset that matches your trading style, then fine-tune below.")
+    p1,p2,p3,p4 = st.columns(4)
 
-    with st.expander("📊 EMA Trend"):
-        ms=st.slider("Min Score",20,70,int(cfg.get("min_score",30)),5)
-        cfg["min_score"]=ms
+    PROFILES = {
+        "🏹 Scalper":       {"sl_atr_mult":0.8, "t1_rr":1.0, "t2_rr":1.5, "t3_rr":2.5,
+                              "min_score":40, "rsi_os":35, "rsi_ob":65, "min_confluences":3,
+                              "desc":"5–15 min trades. Tight SL, quick target."},
+        "📈 Day Trader":    {"sl_atr_mult":1.5, "t1_rr":1.5, "t2_rr":2.5, "t3_rr":4.0,
+                              "min_score":30, "rsi_os":30, "rsi_ob":70, "min_confluences":4,
+                              "desc":"15–60 min trades. Balanced risk/reward."},
+        "🌊 Swing Trader":  {"sl_atr_mult":2.0, "t1_rr":2.0, "t2_rr":3.5, "t3_rr":6.0,
+                              "min_score":25, "rsi_os":28, "rsi_ob":72, "min_confluences":3,
+                              "desc":"1–5 day holds. Wide SL, big targets."},
+        "🛡️ Conservative":  {"sl_atr_mult":1.2, "t1_rr":2.0, "t2_rr":3.0, "t3_rr":5.0,
+                              "min_score":55, "rsi_os":25, "rsi_ob":75, "min_confluences":5,
+                              "desc":"Only highest conviction setups."},
+    }
 
-    with st.expander("📉 RSI Mean Reversion"):
-        c1,c2=st.columns(2)
-        with c1: ros=st.slider("RSI Oversold",20,40,int(cfg.get("rsi_os",30)),1)
-        with c2: rob=st.slider("RSI Overbought",60,80,int(cfg.get("rsi_ob",70)),1)
-        cfg.update(rsi_os=ros,rsi_ob=rob)
-
-    with st.expander("🎯 Multi-Confluence"):
-        mc=st.slider("Min Confluences",2,6,int(cfg.get("min_confluences",4)),1)
-        cfg["min_confluences"]=mc
-        st.caption(f"Requires {mc}/6 signals to align")
-
-    if st.button("💾 Save Config",type="primary",use_container_width=True):
-        st.session_state.strategy_config=cfg
-        st.success("✅ Saved!")
+    for col, (pname, pdata) in zip([p1,p2,p3,p4], PROFILES.items()):
+        with col:
+            st.markdown(f"""
+            <div style='background:#ffffff;border:1px solid #dde3ec;border-radius:10px;
+                 padding:10px;text-align:center;margin-bottom:8px;'>
+              <div style='font-size:.95rem;font-weight:700;color:#1a2332;'>{pname}</div>
+              <div style='font-size:.65rem;color:#64748b;margin-top:3px;'>{pdata['desc']}</div>
+            </div>""", unsafe_allow_html=True)
+            if st.button(f"Apply", key=f"preset_{pname}", use_container_width=True):
+                for k,v in pdata.items():
+                    if k != "desc":
+                        cfg[k] = v
+                st.session_state.strategy_config = cfg
+                st.success(f"{pname} profile applied!"); st.rerun()
 
     st.divider()
-    st.markdown("### 📚 Strategy Guide")
-    for name,(best,avoid,sig,sl) in {
-        "EMA Trend Follow":("Trending","Sideways","EMA cross+MACD+VWAP","ATR below swing"),
-        "RSI Mean Reversion":("Range-bound","Strong trend","RSI extreme+BB+candle","Below trigger candle"),
-        "MACD Momentum":("Breakout","Low volume","MACD×signal+expansion","Wide ATR×2"),
-        "VWAP Reversal":("Intraday scalp","First 15min","VWAP cross+volume","Just past VWAP"),
-        "Multi-Confluence":("Any (best accuracy)","Impatient","4+/6 signals agree","ATR×1.8"),
-    }.items():
+
+    # ── RISK MANAGEMENT ───────────────────────────────────────────────────────
+    st.markdown("#### 🔧 Risk Management")
+    st.caption("These are the most important settings. Professional traders never risk more than 1–2% per trade.")
+
+    with st.expander("📐 Stop Loss & Position Sizing", expanded=True):
+        rc1, rc2 = st.columns([3,2])
+        with rc1:
+            sl_atr = st.slider(
+                "Stop Loss — ATR Multiplier",
+                min_value=0.5, max_value=3.0,
+                value=float(cfg.get("sl_atr_mult", 1.5)), step=0.1,
+                help="SL distance = ATR × this value. 1.5 = standard. Lower = tighter SL (more stops). Higher = wider SL (bigger loss if hit)."
+            )
+            t1_rr = st.slider(
+                "Target 1 — Risk:Reward",
+                min_value=0.5, max_value=3.0,
+                value=float(cfg.get("t1_rr", 1.5)), step=0.25,
+                help="Book partial profit at 1:T1. Most pros take 30–50% off at T1 to ensure the trade is never a loser."
+            )
+            t2_rr = st.slider(
+                "Target 2 — Risk:Reward",
+                min_value=1.5, max_value=6.0,
+                value=float(cfg.get("t2_rr", 2.5)), step=0.25,
+                help="Main target. Min 1:2 RR is professional standard — never risk ₹1 to make less than ₹2."
+            )
+            t3_rr = st.slider(
+                "Target 3 — Runner / Trail",
+                min_value=2.0, max_value=10.0,
+                value=float(cfg.get("t3_rr", 4.0)), step=0.5,
+                help="Let a portion ride for big moves. Professional traders always have a runner position."
+            )
+        with rc2:
+            # Live RR visualizer
+            risk = 100  # normalised ₹100 risk
+            t1_val = risk * t1_rr; t2_val = risk * t2_rr; t3_val = risk * t3_rr
+            t1_bar = min(int(t1_rr / 10 * 100), 100)
+            t2_bar = min(int(t2_rr / 10 * 100), 100)
+            t3_bar = min(int(t3_rr / 10 * 100), 100)
+            sl_bar = min(int(sl_atr / 3.0 * 100), 100)
+            st.markdown(f"""
+            <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:10px;padding:14px;'>
+              <div style='font-size:.8rem;font-weight:700;color:#1a2332;margin-bottom:10px;'>
+                Per ₹100 Risk Visualizer
+              </div>
+              <div style='font-size:.72rem;color:#64748b;margin-bottom:3px;'>SL Width (ATR×{sl_atr})</div>
+              <div style='height:8px;background:#fee2e2;border-radius:4px;margin-bottom:6px;'>
+                <div style='height:100%;width:{sl_bar}%;background:#dc2626;border-radius:4px;'></div>
+              </div>
+              <div style='font-size:.72rem;color:#64748b;margin-bottom:3px;'>T1 → +₹{t1_val:.0f} (1:{t1_rr})</div>
+              <div style='height:8px;background:#d1fae5;border-radius:4px;margin-bottom:6px;'>
+                <div style='height:100%;width:{t1_bar}%;background:#059669;border-radius:4px;'></div>
+              </div>
+              <div style='font-size:.72rem;color:#64748b;margin-bottom:3px;'>T2 → +₹{t2_val:.0f} (1:{t2_rr})</div>
+              <div style='height:8px;background:#d1fae5;border-radius:4px;margin-bottom:6px;'>
+                <div style='height:100%;width:{t2_bar}%;background:#10b981;border-radius:4px;'></div>
+              </div>
+              <div style='font-size:.72rem;color:#64748b;margin-bottom:3px;'>T3 → +₹{t3_val:.0f} (1:{t3_rr})</div>
+              <div style='height:8px;background:#dbeafe;border-radius:4px;margin-bottom:8px;'>
+                <div style='height:100%;width:{t3_bar}%;background:#0ea5e9;border-radius:4px;'></div>
+              </div>
+              <div style='font-size:.68rem;color:#64748b;border-top:1px solid #dde3ec;padding-top:8px;'>
+                💡 Pro tip: Never enter unless T2 ≥ 2× risk.<br>
+                Always trail SL to entry after T1 hits.
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+        cfg.update(sl_atr_mult=sl_atr, t1_rr=t1_rr, t2_rr=t2_rr, t3_rr=t3_rr)
+
+    # ── ENTRY FILTERS ─────────────────────────────────────────────────────────
+    st.markdown("#### 🎯 Entry Filters")
+    st.caption("Stricter filters = fewer but higher-quality trades. Looser = more trades but more false signals.")
+
+    with st.expander("📊 EMA Trend Strategy", expanded=False):
+        col1, col2 = st.columns([2,1])
+        with col1:
+            ms = st.slider(
+                "Minimum Signal Score to Enter",
+                min_value=20, max_value=70,
+                value=int(cfg.get("min_score", 30)), step=5,
+                help="Score is built from EMA/RSI/MACD/VWAP/Pattern alignment. 30=standard, 50=strict, 20=loose."
+            )
+        with col2:
+            quality = "🔴 Loose" if ms < 30 else "🟡 Standard" if ms < 50 else "🟢 Strict"
+            st.markdown(f"""
+            <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;
+                 padding:10px;text-align:center;margin-top:4px;'>
+              <div style='font-size:.7rem;color:#64748b;'>Filter Quality</div>
+              <div style='font-size:1.1rem;font-weight:700;'>{quality}</div>
+              <div style='font-size:.65rem;color:#64748b;margin-top:2px;'>
+                {'More signals, more noise' if ms < 30 else 'Balanced approach' if ms < 50 else 'High conviction only'}
+              </div>
+            </div>""", unsafe_allow_html=True)
+        cfg["min_score"] = ms
+        st.info("💡 **Professional standard:** Score ≥ 40 for day trading, ≥ 50 for swing. Lower scores = more whipsaws.")
+
+    with st.expander("📉 RSI Mean Reversion Strategy", expanded=False):
+        rc1, rc2 = st.columns(2)
+        with rc1:
+            rsi_os = st.slider("RSI Oversold Level", 20, 40, int(cfg.get("rsi_os", 30)), 1,
+                               help="Below this = look for BUY PE reversal. Classic: 30. Aggressive: 35.")
+            st.caption(f"BUY signal fires when RSI < {rsi_os} + bullish candle near BB lower")
+        with rc2:
+            rsi_ob = st.slider("RSI Overbought Level", 60, 80, int(cfg.get("rsi_ob", 70)), 1,
+                               help="Above this = look for SELL CE reversal. Classic: 70. Aggressive: 65.")
+            st.caption(f"SELL signal fires when RSI > {rsi_ob} + bearish candle near BB upper")
+        cfg.update(rsi_os=rsi_os, rsi_ob=rsi_ob)
+        st.info("💡 **Professional standard:** RSI 30/70 for liquid stocks. Use 35/65 for faster signals on F&O names.")
+
+    with st.expander("🎯 Multi-Confluence Strategy", expanded=False):
+        mc = st.slider(
+            "Minimum Confluences Required",
+            min_value=2, max_value=6,
+            value=int(cfg.get("min_confluences", 4)), step=1,
+            help="Number of independent signals that must agree before entry."
+        )
+        # Visual confluence meter
+        labels = ["EMA Stack", "MACD", "RSI Zone", "VWAP", "BB Position", "Candle Pattern"]
+        cols_c = st.columns(6)
+        for i, (col_c, lbl) in enumerate(zip(cols_c, labels)):
+            with col_c:
+                active = i < mc
+                col_c.markdown(f"""
+                <div style='text-align:center;padding:6px 4px;border-radius:6px;
+                     background:{"#ecfdf5" if active else "#f8fafc"};
+                     border:1px solid {"#059669" if active else "#dde3ec"};'>
+                  <div style='font-size:.6rem;color:{"#059669" if active else "#94a3b8"};font-weight:{"700" if active else "400"};'>{lbl}</div>
+                  <div style='font-size:.8rem;'>{"✅" if active else "○"}</div>
+                </div>""", unsafe_allow_html=True)
+        cfg["min_confluences"] = mc
+        trade_freq = ["Very High","High","Moderate","Low","Very Low","Ultra Low"][mc-1] if mc <= 6 else "—"
+        accuracy = ["~40%","~50%","~60%","~70%","~80%","~85%+"][mc-1] if mc <= 6 else "—"
+        st.markdown(f"""
+        <div style='display:flex;gap:16px;margin-top:8px;'>
+          <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:8px 14px;flex:1;text-align:center;'>
+            <div style='font-size:.65rem;color:#64748b;'>Trade Frequency</div>
+            <div style='font-size:.9rem;font-weight:700;color:#1a2332;'>{trade_freq}</div>
+          </div>
+          <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:8px 14px;flex:1;text-align:center;'>
+            <div style='font-size:.65rem;color:#64748b;'>Est. Accuracy</div>
+            <div style='font-size:.9rem;font-weight:700;color:#059669;'>{accuracy}</div>
+          </div>
+          <div style='background:#f8fafc;border:1px solid #dde3ec;border-radius:8px;padding:8px 14px;flex:2;'>
+            <div style='font-size:.65rem;color:#64748b;'>Pro Recommendation</div>
+            <div style='font-size:.72rem;color:#1a2332;'>{"Use for quick scalps — accept more losers" if mc <= 2 else "Standard day trading setup" if mc == 3 else "Professional standard — best balance" if mc == 4 else "High conviction only — wait patiently" if mc == 5 else "Extreme patience required — 1–2 trades/week"}</div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+        st.info("💡 **Professional standard:** 4/6 confluences. Top traders wait for 4–5 independent signals before entering.")
+
+    st.divider()
+
+    # ── SAVE ──────────────────────────────────────────────────────────────────
+    sc1, sc2 = st.columns([3,1])
+    with sc1:
+        if st.button("💾 Save Configuration", type="primary", use_container_width=True):
+            st.session_state.strategy_config = cfg
+            st.success("✅ Configuration saved and active!")
+    with sc2:
+        if st.button("↺ Reset Defaults", use_container_width=True):
+            st.session_state.strategy_config = {
+                "sl_atr_mult":1.5,"t1_rr":1.5,"t2_rr":2.5,"t3_rr":4.0,
+                "min_score":30,"rsi_os":30,"rsi_ob":70,"min_confluences":4,
+            }
+            st.success("Reset to defaults."); st.rerun()
+
+    st.divider()
+
+    # ── PROFESSIONAL KNOWLEDGE BASE ───────────────────────────────────────────
+    st.markdown("#### 📚 Professional Trader's Guide")
+
+    with st.expander("🏆 The 5 Rules Every Profitable Trader Follows"):
+        r1,r2 = st.columns(2)
+        with r1:
+            st.markdown("""
+**1. Risk 1% per trade maximum**
+Never risk more than 1% of your capital on a single trade. On ₹5L capital, that's ₹5,000 max risk per trade.
+
+**2. Minimum 1:2 Risk:Reward**
+Never take a trade where you can't make at least 2× what you're risking. This means you can be right only 40% of the time and still be profitable.
+
+**3. No revenge trading**
+After a loss, wait at least 30 minutes before the next trade. Emotional trades are losing trades.
+            """)
+        with r2:
+            st.markdown("""
+**4. Trade with the trend**
+On 15-min chart, only take trades in the direction of the 1-hour trend. Check EMA stack on a higher timeframe before entry.
+
+**5. Size down in uncertainty**
+When MACD and RSI conflict, or VIX is above 20, reduce position size by 50%. Uncertainty = smaller size.
+            """)
+
+    strategy_guide = {
+        "EMA Trend Follow": {
+            "when": "Strong trending market — Nifty/BankNifty with clear directional move",
+            "avoid": "Sideways / range-bound days (VIX low, Nifty flat all day)",
+            "entry": "EMA9 × EMA21 cross + MACD histogram positive + price above VWAP",
+            "sl": "ATR × 1.5 below swing low (long) or above swing high (short)",
+            "target": "T1 at 1:1.5, T2 at 1:2.5 — trail SL after T1 hit",
+            "best_tf": "15 min chart, confirmed on 1H",
+            "pro_tip": "Most reliable on high-volume stocks and BankNifty. Avoid in first 15 min of market open.",
+        },
+        "RSI Mean Reversion": {
+            "when": "Range-bound, low-volatility sessions — Nifty stuck in a range",
+            "avoid": "Strong trends — RSI can stay at extremes for hours on trending days",
+            "entry": "RSI < 30 + price at BB lower + Hammer / Bullish Engulfing",
+            "sl": "Below the low of the reversal candle (tight SL)",
+            "target": "BB mid (T1), BB upper (T2) — quick profit booking",
+            "best_tf": "5 or 15 min chart",
+            "pro_tip": "Most effective between 10:30–2:00 IST. Avoid near major news events.",
+        },
+        "MACD Momentum": {
+            "when": "Breakout days — strong move after gap-up/down or news event",
+            "avoid": "Post-lunch chop (1:30–2:30 IST) when volume dries up",
+            "entry": "MACD line × signal line cross + histogram expansion + EMA alignment",
+            "sl": "ATR × 2.0 (wider — momentum trades need room to breathe)",
+            "target": "Let it run with trailing SL — momentum can be sustained for hours",
+            "best_tf": "15 or 25 min chart",
+            "pro_tip": "Combine with volume confirmation — valid momentum breakouts always have high volume.",
+        },
+        "VWAP Reversal": {
+            "when": "Intraday scalps — price testing VWAP level",
+            "avoid": "First 15 min (VWAP not reliable yet) and last 30 min (expiry noise)",
+            "entry": "Price reclaims VWAP from below + increasing volume + bullish candle",
+            "sl": "Just below VWAP level (1 ATR × 0.5)",
+            "target": "T1 near prior swing high — VWAP trades are scalps",
+            "best_tf": "5 min chart with 15 min trend filter",
+            "pro_tip": "VWAP is most powerful when price has made a big move away from it and comes back — mean reversion to VWAP.",
+        },
+        "Multi-Confluence": {
+            "when": "Any market — but only enter when 4+ signals align perfectly",
+            "avoid": "When in a hurry — this strategy requires patience. Can go all day without a setup.",
+            "entry": "4–5 of: EMA Stack + MACD + RSI Zone + VWAP + BB + Candle Pattern",
+            "sl": "ATR × 1.8 — highest conviction = can afford wider SL",
+            "target": "T3 is realistic — these high-confidence trades often run far",
+            "best_tf": "15 or 25 min for best results",
+            "pro_tip": "This is the strategy top professional traders use. They miss 80% of moves but capture the cleanest 20% with precision.",
+        },
+    }
+
+    for name, g in strategy_guide.items():
         with st.expander(f"📖 {name}"):
-            c1,c2=st.columns(2)
-            with c1: st.markdown(f"✅ **Best:** {best}\n\n❌ **Avoid:** {avoid}")
-            with c2: st.markdown(f"⚡ **Signal:** {sig}\n\n🛑 **SL:** {sl}")
+            sg1, sg2 = st.columns(2)
+            with sg1:
+                st.markdown(f"""
+**✅ Trade when:** {g['when']}
+
+**❌ Avoid when:** {g['avoid']}
+
+**⚡ Entry signal:** {g['entry']}
+
+**🕐 Best timeframe:** {g['best_tf']}
+                """)
+            with sg2:
+                st.markdown(f"""
+**🛑 Stop Loss:** {g['sl']}
+
+**🎯 Targets:** {g['target']}
+                """)
+                st.info(f"💡 **Pro tip:** {g['pro_tip']}")
 
     st.divider()
-    if st.button("🗑️ Clear All Active Trades",type="secondary"):
-        st.session_state.active_trades={}
-        st.success("Cleared."); st.rerun()
+    col_clr1, col_clr2 = st.columns(2)
+    with col_clr1:
+        if st.button("🗑️ Clear All Active Trades", type="secondary", use_container_width=True):
+            st.session_state.active_trades = {}
+            st.success("Cleared."); st.rerun()
+    with col_clr2:
+        if st.button("🗑️ Clear Trade Journal", type="secondary", use_container_width=True):
+            st.session_state.trade_log = []
+            st.success("Journal cleared."); st.rerun()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
