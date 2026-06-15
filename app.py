@@ -292,50 +292,45 @@ def last_trading_day():
 
 def resolve_date_range(date_mode, custom_from=None, custom_to=None, interval="15"):
     """
-    Returns (from_str, to_str) for Dhan API.
-    IMPORTANT: Dhan intraday toDate is NON-INCLUSIVE — must be day AFTER last desired day.
-    To fetch today's candles: fromDate=today, toDate=tomorrow.
+    Returns (from_str, to_str) as plain YYYY-MM-DD strings for Dhan API.
+    Dhan /charts/intraday accepts date-only strings (no time component).
+    fromDate and toDate are both INCLUSIVE.
     """
-    today    = datetime.now().date()
-    tomorrow = today + timedelta(days=1)
-    is_intraday = interval in ("1", "5", "15", "25", "60")
+    today = datetime.now().date()
 
     if date_mode == "Today":
         fd = today
-        td = tomorrow          # non-inclusive: must be day after
+        td = today
     elif date_mode == "Last Trading Day":
-        ltday = last_trading_day()
-        fd = ltday
-        td = today             # exclusive upper bound gives yesterday only
+        fd = last_trading_day()
+        td = fd
     elif date_mode == "This Week":
-        fd = today - timedelta(days=today.weekday())
-        td = tomorrow
+        fd = today - timedelta(days=today.weekday())   # Monday
+        td = today
     elif date_mode == "Last 5 Days":
-        fd = today - timedelta(days=7)
-        td = tomorrow
+        fd = today - timedelta(days=6)
+        td = today
     elif date_mode == "Last 1 Month":
         fd = today - timedelta(days=30)
-        td = tomorrow
+        td = today
     elif date_mode == "Last 3 Months":
         fd = today - timedelta(days=90)
-        td = tomorrow
+        td = today
     elif date_mode == "Last 6 Months":
         fd = today - timedelta(days=180)
-        td = tomorrow
+        td = today
     elif date_mode == "Last 1 Year":
         fd = today - timedelta(days=365)
-        td = tomorrow
+        td = today
     elif date_mode == "Custom" and custom_from and custom_to:
         fd = custom_from
-        td = custom_to + timedelta(days=1)
+        td = custom_to
     else:
         fd = today - timedelta(days=5)
-        td = tomorrow
+        td = today
 
-    if is_intraday:
-        return (f"{fd} 09:15:00", f"{td} 15:30:00")
-    else:
-        return (str(fd), str(td))
+    # Always return plain YYYY-MM-DD — no time suffix for any endpoint
+    return (str(fd), str(td))
 
 def _instrument_type(segment):
     """Map Dhan segment to instrument type string."""
